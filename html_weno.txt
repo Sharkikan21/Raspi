@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h1>CSV Content</h1>
+    <div id="csv-table">Loading...</div>
+
+    <script>
+        // el body es el cuerpo del html donde se define todo
+        // script es el codigo de js que sirve para html, super util para conseguir datos del back
+        
+        // funcion para conseguir data
+        function fetchData() {
+            fetch('/data') // fetch es una funcion de js que consigue datos, en este caso va a la ruta /data que se define en flask para conseguir los datos del csv
+                .then(response => response.text()) // aqui pasa los datos a texto
+                .then(data => {
+                    document.getElementById('csv-table').innerHTML = data; //aqui inserta los datos en el contendor div, con el id csv-table
+                });
+        }
+
+        // Fetch data every 5 seconds
+        setInterval(fetchData, 5000); // ejecuta la funcion cada 5 segundos
+        // Initial fetch
+        fetchData();
+    </script>
+</body>
+</html>
