@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import pandas as pd
 import psycopg2
@@ -30,13 +30,13 @@ def get_db_data():
     try:
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
+        format_type = request.args.get('format', 'html')
         
         query = 'SELECT * FROM public.tension'
         params = []
         
         if fecha_inicio and fecha_fin:
             query += ' WHERE fecha BETWEEN %s AND %s'
-            # Convertir las fechas al formato correcto para PostgreSQL
             fecha_inicio = datetime.fromisoformat(fecha_inicio).strftime('%Y-%m-%d %H:%M:%S')
             fecha_fin = datetime.fromisoformat(fecha_fin).strftime('%Y-%m-%d %H:%M:%S')
             params = [fecha_inicio, fecha_fin]
@@ -44,11 +44,18 @@ def get_db_data():
         query += ' ORDER BY fecha DESC'
         
         conn = get_db_connection()
-        # Using pandas to create HTML table with parameters
         df = pd.read_sql_query(query, conn, params=params)
         conn.close()
         
-        return df.to_html(classes='table table-striped', index=False)
+        if format_type == 'json':
+            data = {
+                'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+                'pesos': df['peso_kilbf'].tolist()
+            }
+            return jsonify(data)
+        else:
+            return df.to_html(classes='table table-striped', index=False)
+            
     except Exception as e:
         print(f"Database error: {e}")
         return f"<p>Error: {str(e)}</p>"
