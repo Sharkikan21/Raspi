@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sensor de Tensión en Tiempo Real</title>
+    <title>Sensor de Tensión - Monitor</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         .container {
@@ -21,17 +21,67 @@
             margin: 20px 0;
             border-radius: 10px;
         }
+        .control-panel {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+        }
+        .mode-selector {
+            margin-bottom: 20px;
+        }
+        .historical-controls {
+            display: none;
+            gap: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Monitor de Tensión en Tiempo Real</h1>
+        <h1>Monitor de Tensión</h1>
+        
+        <div class="control-panel">
+            <div class="mode-selector">
+                <label>Modo de visualización:</label>
+                <select id="viewMode" onchange="toggleViewMode()">
+                    <option value="realtime">Tiempo Real</option>
+                    <option value="historical">Datos Históricos</option>
+                </select>
+            </div>
+
+            <div id="historicalControls" class="historical-controls">
+                <div>
+                    <label>Desde:</label>
+                    <input type="datetime-local" id="startDate">
+                </div>
+                <div>
+                    <label>Hasta:</label>
+                    <input type="datetime-local" id="endDate">
+                </div>
+                <button class="btn" onclick="loadHistoricalData()">Cargar Datos</button>
+            </div>
+        </div>
+
         <div id="value-display" class="value-display"></div>
         <div id="tension-chart" class="chart-container"></div>
     </div>
 
     <script>
-        // Configuración del gráfico
+        let isRealTimeMode = true;
+        let updateInterval;
+        
+        // Configuración inicial del gráfico
         let trace = {
             x: [],
             y: [],
@@ -44,7 +94,6 @@
             xaxis: { title: 'Tiempo' },
             yaxis: { title: 'Tensión (kg)' },
             shapes: [
-                // Zona verde (0-1000)
                 {
                     type: 'rect',
                     xref: 'paper',
@@ -56,7 +105,6 @@
                     fillcolor: 'rgba(0,255,0,0.1)',
                     line: { width: 0 }
                 },
-                // Zona amarilla (1000-1500)
                 {
                     type: 'rect',
                     xref: 'paper',
@@ -68,7 +116,6 @@
                     fillcolor: 'rgba(255,255,0,0.1)',
                     line: { width: 0 }
                 },
-                // Zona roja (>1500)
                 {
                     type: 'rect',
                     xref: 'paper',
@@ -85,15 +132,60 @@
 
         Plotly.newPlot('tension-chart', [trace], layout);
 
+        function toggleViewMode() {
+            const mode = document.getElementById('viewMode').value;
+            const historicalControls = document.getElementById('historicalControls');
+            
+            if (mode === 'realtime') {
+                historicalControls.style.display = 'none';
+                startRealTimeUpdates();
+            } else {
+                historicalControls.style.display = 'flex';
+                stopRealTimeUpdates();
+            }
+        }
+
+        function startRealTimeUpdates() {
+            isRealTimeMode = true;
+            // Limpiar datos anteriores
+            trace.x = [];
+            trace.y = [];
+            Plotly.update('tension-chart', {x: [trace.x], y: [trace.y]});
+            
+            // Iniciar actualizaciones
+            updateData();
+            updateInterval = setInterval(updateData, 1000);
+        }
+
+        function stopRealTimeUpdates() {
+            isRealTimeMode = false;
+            clearInterval(updateInterval);
+        }
+
+        function loadHistoricalData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            fetch(`/get_historical_data?start=${startDate}&end=${endDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    Plotly.update('tension-chart', {
+                        x: [data.timestamps],
+                        y: [data.values]
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
         function updateData() {
+            if (!isRealTimeMode) return;
+            
             fetch('/get_data')
                 .then(response => response.json())
                 .then(data => {
-                    // Actualizar el valor actual
                     const valueDisplay = document.getElementById('value-display');
                     const value = data.current_value;
                     
-                    // Cambiar el color según el valor
                     let backgroundColor;
                     if (value <= 1000) {
                         backgroundColor = 'rgba(0,255,0,0.2)';
@@ -106,18 +198,26 @@
                     valueDisplay.style.backgroundColor = backgroundColor;
                     valueDisplay.textContent = `Tensión actual: ${value.toFixed(2)} kg`;
 
-                    // Actualizar el gráfico
+                    // Actualizar el gráfico solo con nuevos datos
+                    trace.x.push(data.timestamp);
+                    trace.y.push(value);
+
+                    // Mantener solo los últimos 100 puntos para tiempo real
+                    if (trace.x.length > 100) {
+                        trace.x.shift();
+                        trace.y.shift();
+                    }
+
                     Plotly.update('tension-chart', {
-                        x: [data.historical_data.timestamps],
-                        y: [data.historical_data.values]
+                        x: [trace.x],
+                        y: [trace.y]
                     });
                 })
                 .catch(error => console.error('Error:', error));
         }
 
-        // Actualizar cada segundo
-        setInterval(updateData, 1000);
-        updateData(); // Primera actualización inmediata
+        // Iniciar en modo tiempo real
+        startRealTimeUpdates();
     </script>
 </body>
 </html>
