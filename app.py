@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 import pandas as pd
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
+import csv
 
 # Flask basic setup
 app = Flask(__name__)
@@ -52,6 +53,29 @@ def get_db_data():
     except Exception as e:
         print(f"Database error: {e}")
         return f"<p>Error: {str(e)}</p>"
+
+@app.route('/get_data')
+def get_data():
+    try:
+        with open('datos_tension_generados.csv', 'r') as file:
+            csv_reader = csv.reader(file)
+            next(csv_reader)  # Saltar la cabecera
+            data = list(csv_reader)
+            if data:
+                last_row = data[-1]
+                # Obtener los últimos 100 registros para el gráfico
+                last_100_rows = data[-100:] if len(data) > 100 else data
+                
+                return jsonify({
+                    'current_value': float(last_row[1]),
+                    'timestamp': last_row[0],
+                    'historical_data': {
+                        'timestamps': [row[0] for row in last_100_rows],
+                        'values': [float(row[1]) for row in last_100_rows]
+                    }
+                })
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 if __name__ == '__main__':
     app.run(debug=True)

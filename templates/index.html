@@ -1,59 +1,123 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Viewer</title>
+    <title>Sensor de Tensión en Tiempo Real</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        .filter-container { margin-bottom: 20px; }
-        .filter-container input { margin-right: 10px; padding: 5px; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            margin: 20px 0;
+        }
+        .value-display {
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Datos de Tensión</h1>
-    <div class="filter-container">
-        <label>Desde: </label>
-        <input type="datetime-local" id="fecha_inicio">
-        <label>Hasta: </label>
-        <input type="datetime-local" id="fecha_fin">
-        <button onclick="fetchData()">Filtrar</button>
+    <div class="container">
+        <h1>Monitor de Tensión en Tiempo Real</h1>
+        <div id="value-display" class="value-display"></div>
+        <div id="tension-chart" class="chart-container"></div>
     </div>
-    <div id="csv-table">Loading...</div>
 
     <script>
-        function fetchData() {
-            const fechaInicio = document.getElementById('fecha_inicio').value;
-            const fechaFin = document.getElementById('fecha_fin').value;
-            
-            let url = '/data';
-            if (fechaInicio && fechaFin) {
-                url += `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
-            }
-            
-            fetch(url)
-                .then(response => response.text())
+        // Configuración del gráfico
+        let trace = {
+            x: [],
+            y: [],
+            mode: 'lines',
+            name: 'Tensión'
+        };
+
+        let layout = {
+            title: 'Tensión vs Tiempo',
+            xaxis: { title: 'Tiempo' },
+            yaxis: { title: 'Tensión (kg)' },
+            shapes: [
+                // Zona verde (0-1000)
+                {
+                    type: 'rect',
+                    xref: 'paper',
+                    yref: 'y',
+                    x0: 0,
+                    y0: 0,
+                    x1: 1,
+                    y1: 1000,
+                    fillcolor: 'rgba(0,255,0,0.1)',
+                    line: { width: 0 }
+                },
+                // Zona amarilla (1000-1500)
+                {
+                    type: 'rect',
+                    xref: 'paper',
+                    yref: 'y',
+                    x0: 0,
+                    y0: 1000,
+                    x1: 1,
+                    y1: 1500,
+                    fillcolor: 'rgba(255,255,0,0.1)',
+                    line: { width: 0 }
+                },
+                // Zona roja (>1500)
+                {
+                    type: 'rect',
+                    xref: 'paper',
+                    yref: 'y',
+                    x0: 0,
+                    y0: 1500,
+                    x1: 1,
+                    y1: 2000,
+                    fillcolor: 'rgba(255,0,0,0.1)',
+                    line: { width: 0 }
+                }
+            ]
+        };
+
+        Plotly.newPlot('tension-chart', [trace], layout);
+
+        function updateData() {
+            fetch('/get_data')
+                .then(response => response.json())
                 .then(data => {
-                    document.getElementById('csv-table').innerHTML = data;
-                });
+                    // Actualizar el valor actual
+                    const valueDisplay = document.getElementById('value-display');
+                    const value = data.current_value;
+                    
+                    // Cambiar el color según el valor
+                    let backgroundColor;
+                    if (value <= 1000) {
+                        backgroundColor = 'rgba(0,255,0,0.2)';
+                    } else if (value <= 1500) {
+                        backgroundColor = 'rgba(255,255,0,0.2)';
+                    } else {
+                        backgroundColor = 'rgba(255,0,0,0.2)';
+                    }
+                    
+                    valueDisplay.style.backgroundColor = backgroundColor;
+                    valueDisplay.textContent = `Tensión actual: ${value.toFixed(2)} kg`;
+
+                    // Actualizar el gráfico
+                    Plotly.update('tension-chart', {
+                        x: [data.historical_data.timestamps],
+                        y: [data.historical_data.values]
+                    });
+                })
+                .catch(error => console.error('Error:', error));
         }
 
-        // Fetch data every 5 seconds only if no filters are applied
-        function autoFetch() {
-            if (!document.getElementById('fecha_inicio').value && 
-                !document.getElementById('fecha_fin').value) {
-                fetchData();
-            }
-        }
-        
-        setInterval(autoFetch, 5000);
-        // Initial fetch
-        fetchData();
+        // Actualizar cada segundo
+        setInterval(updateData, 1000);
+        updateData(); // Primera actualización inmediata
     </script>
 </body>
 </html>
