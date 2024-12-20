@@ -10,12 +10,41 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f4f4f4; }
-        .filter-container { margin-bottom: 20px; }
-        .filter-container input { margin-right: 10px; padding: 5px; }
+        .filter-container { 
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .filter-container input { 
+            margin-right: 10px; 
+            padding: 5px; 
+        }
         .chart-container {
             width: 100%;
             height: 400px;
             margin: 20px 0;
+        }
+        .button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        #toggleTableBtn {
+            background-color: #2196F3;
+        }
+        #toggleTableBtn:hover {
+            background-color: #0b7dda;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -27,17 +56,33 @@
         <input type="datetime-local" id="fecha_inicio">
         <label>Hasta: </label>
         <input type="datetime-local" id="fecha_fin">
-        <button onclick="fetchData()">Filtrar</button>
+        <button class="button" onclick="fetchData()">Filtrar</button>
+        <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
     
     <div class="chart-container">
         <canvas id="tensionChart"></canvas>
     </div>
     
-    <div id="csv-table">Loading...</div>
+    <div id="csv-table" class="hidden">Loading...</div>
 
     <script>
         let chart = null;
+        let tableVisible = false;
+
+        function toggleTable() {
+            const tableDiv = document.getElementById('csv-table');
+            const toggleBtn = document.getElementById('toggleTableBtn');
+            tableVisible = !tableVisible;
+            
+            if (tableVisible) {
+                tableDiv.classList.remove('hidden');
+                toggleBtn.textContent = 'Ocultar Tabla';
+            } else {
+                tableDiv.classList.add('hidden');
+                toggleBtn.textContent = 'Mostrar Tabla';
+            }
+        }
 
         function createChart(fechas, pesos) {
             if (chart) {
