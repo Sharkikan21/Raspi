@@ -11,9 +11,13 @@
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f4f4f4; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>CSV Content</h1>
+    <div style="width: 800px; height: 400px;">
+        <canvas id="myChart"></canvas>
+    </div>
     <div id="csv-table">Loading...</div>
 
     <script>
@@ -26,7 +30,60 @@
                 .then(response => response.text()) // aqui pasa los datos a texto
                 .then(data => {
                     document.getElementById('csv-table').innerHTML = data; //aqui inserta los datos en el contendor div, con el id csv-table
+                    
+                    // Extraer datos de la tabla para la gráfica
+                    const table = document.querySelector('table');
+                    const dates = [];
+                    const measurements = [];
+                    
+                    // Empezamos desde i=1 para saltar el encabezado
+                    for (let i = 1; i < table.rows.length; i++) {
+                        dates.push(table.rows[i].cells[0].textContent); // Primera columna (fecha)
+                        measurements.push(parseFloat(table.rows[i].cells[1].textContent)); // Segunda columna (medición)
+                    }
+                    
+                    // Crear o actualizar la gráfica
+                    updateChart(dates, measurements);
                 });
+        }
+
+        let myChart = null;
+
+        function updateChart(dates, measurements) {
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Mediciones',
+                        data: measurements,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Medición'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Fetch data every 5 seconds
