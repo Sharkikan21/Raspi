@@ -1,12 +1,14 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, request, redirect, url_for
+import os
+import pandas as pd
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from datetime import datetime
-import pandas as pd
 
+# Flask basic setup
 app = Flask(__name__)
 
-# Configuración de la base de datos
+# Database connection configuration
 DB_CONFIG = {
     'host': 'raspi-db.cti0wcg6q365.us-east-1.rds.amazonaws.com',
     'database': 'postgres',
@@ -18,101 +20,38 @@ DB_CONFIG = {
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
+# Route to display table contents
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/get_data')
-def get_data():
+@app.route('/data')
+def get_db_data():
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        fecha_inicio = request.args.get('fecha_inicio')
+        fecha_fin = request.args.get('fecha_fin')
         
-        # Obtener el último registro
-        cursor.execute("""
-            SELECT fecha as timestamp, valor as value 
-            FROM public.tension 
-            ORDER BY fecha DESC 
-            LIMIT 1
-        """)
+        query = 'SELECT * FROM public.tension'
+        params = []
         
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if result:
-            return jsonify({
-                'current_value': float(result['value']),
-                'timestamp': result['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-            })
-        return jsonify({'error': 'No data found'})
-    
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route('/get_historical_data')
-def get_historical_data():
-    try:
-        start_date = request.args.get('start')
-        end_date = request.args.get('end')
+        if fecha_inicio and fecha_fin:
+            query += ' WHERE fecha BETWEEN %s AND %s'
+            # Convertir las fechas al formato correcto para PostgreSQL
+            fecha_inicio = datetime.fromisoformat(fecha_inicio).strftime('%Y-%m-%d %H:%M:%S')
+            fecha_fin = datetime.fromisoformat(fecha_fin).strftime('%Y-%m-%d %H:%M:%S')
+            params = [fecha_inicio, fecha_fin]
+        
+        query += ' ORDER BY fecha DESC'
         
         conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        query = """
-            SELECT fecha as timestamp, valor as value 
-            FROM public.tension 
-            WHERE fecha BETWEEN %s AND %s 
-            ORDER BY fecha ASC
-        """
-        
-        cursor.execute(query, (start_date, end_date))
-        results = cursor.fetchall()
-        
-        timestamps = [row['timestamp'].strftime('%Y-%m-%d %H:%M:%S') for row in results]
-        values = [float(row['value']) for row in results]
-        
-        cursor.close()
+        # Using pandas to create HTML table with parameters
+        df = pd.read_sql_query(query, conn, params=params)
         conn.close()
         
-        return jsonify({
-            'timestamps': timestamps,
-            'values': values
-        })
-        
+        return df.to_html(classes='table table-striped', index=False)
     except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route('/get_latest_data')
-def get_latest_data():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Obtener los últimos 100 registros para el modo tiempo real
-        cursor.execute("""
-            SELECT fecha as timestamp, valor as value 
-            FROM public.tension 
-            ORDER BY fecha DESC 
-            LIMIT 100
-        """)
-        
-        results = cursor.fetchall()
-        results.reverse()  # Invertir para orden cronológico
-        
-        timestamps = [row['timestamp'].strftime('%Y-%m-%d %H:%M:%S') for row in results]
-        values = [float(row['value']) for row in results]
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({
-            'timestamps': timestamps,
-            'values': values
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)})
+        print(f"Database error: {e}")
+        return f"<p>Error: {str(e)}</p>"
 
 if __name__ == '__main__':
     app.run(debug=True)
