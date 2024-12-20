@@ -147,14 +147,18 @@
 
         function startRealTimeUpdates() {
             isRealTimeMode = true;
-            // Limpiar datos anteriores
-            trace.x = [];
-            trace.y = [];
-            Plotly.update('tension-chart', {x: [trace.x], y: [trace.y]});
-            
-            // Iniciar actualizaciones
-            updateData();
-            updateInterval = setInterval(updateData, 1000);
+            // Cargar los últimos 100 datos al iniciar
+            fetch('/get_latest_data')
+                .then(response => response.json())
+                .then(data => {
+                    trace.x = data.timestamps;
+                    trace.y = data.values;
+                    Plotly.update('tension-chart', {x: [trace.x], y: [trace.y]});
+                    
+                    // Iniciar actualizaciones periódicas
+                    updateInterval = setInterval(updateData, 1000);
+                })
+                .catch(error => console.error('Error:', error));
         }
 
         function stopRealTimeUpdates() {
@@ -169,6 +173,10 @@
             fetch(`/get_historical_data?start=${startDate}&end=${endDate}`)
                 .then(response => response.json())
                 .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
                     Plotly.update('tension-chart', {
                         x: [data.timestamps],
                         y: [data.values]
@@ -183,6 +191,11 @@
             fetch('/get_data')
                 .then(response => response.json())
                 .then(data => {
+                    if (data.error) {
+                        console.error('Error:', data.error);
+                        return;
+                    }
+
                     const valueDisplay = document.getElementById('value-display');
                     const value = data.current_value;
                     
@@ -198,7 +211,7 @@
                     valueDisplay.style.backgroundColor = backgroundColor;
                     valueDisplay.textContent = `Tensión actual: ${value.toFixed(2)} kg`;
 
-                    // Actualizar el gráfico solo con nuevos datos
+                    // Actualizar el gráfico
                     trace.x.push(data.timestamp);
                     trace.y.push(value);
 
