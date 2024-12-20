@@ -46,17 +46,34 @@
         #toggleTableBtn:hover {
             background-color: #0b7dda;
         }
+        #realTimeBtn {
+            background-color: #ff9800;
+        }
+        #realTimeBtn:hover {
+            background-color: #f57c00;
+        }
+        #realTimeBtn.active {
+            background-color: #e65100;
+        }
+        .filter-container.disabled input,
+        .filter-container.disabled button.filter-btn {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>Datos de Tensión</h1>
     <div class="filter-container">
-        <label>Desde: </label>
-        <input type="datetime-local" id="fecha_inicio">
-        <label>Hasta: </label>
-        <input type="datetime-local" id="fecha_fin">
-        <button class="button" onclick="fetchData()">Filtrar</button>
+        <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
+        <div id="filterControls" style="display: inline-block;">
+            <label>Desde: </label>
+            <input type="datetime-local" id="fecha_inicio">
+            <label>Hasta: </label>
+            <input type="datetime-local" id="fecha_fin">
+            <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
+        </div>
         <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
     
@@ -69,18 +86,79 @@
     <script>
         let chart = null;
         let tableVisible = false;
+        let isRealTime = false;
+        let realTimeInterval = null;
+        const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
+        let lastTimestamp = null;
 
-        function toggleTable() {
-            const tableDiv = document.getElementById('csv-table');
-            const toggleBtn = document.getElementById('toggleTableBtn');
-            tableVisible = !tableVisible;
+        function toggleRealTime() {
+            isRealTime = !isRealTime;
+            const realTimeBtn = document.getElementById('realTimeBtn');
+            const filterContainer = document.querySelector('.filter-container');
             
-            if (tableVisible) {
-                tableDiv.classList.remove('hidden');
-                toggleBtn.textContent = 'Ocultar Tabla';
+            if (isRealTime) {
+                realTimeBtn.textContent = 'Detener Tiempo Real';
+                realTimeBtn.classList.add('active');
+                filterContainer.classList.add('disabled');
+                startRealTimeUpdates();
             } else {
-                tableDiv.classList.add('hidden');
-                toggleBtn.textContent = 'Mostrar Tabla';
+                realTimeBtn.textContent = 'Iniciar Tiempo Real';
+                realTimeBtn.classList.remove('active');
+                filterContainer.classList.remove('disabled');
+                stopRealTimeUpdates();
+            }
+        }
+
+        function startRealTimeUpdates() {
+            // Limpiar cualquier intervalo existente
+            if (realTimeInterval) {
+                clearInterval(realTimeInterval);
+            }
+
+            // Obtener datos iniciales
+            fetchRealTimeData();
+            
+            // Configurar actualización periódica
+            realTimeInterval = setInterval(fetchRealTimeData, 1000); // Actualizar cada segundo
+        }
+
+        function stopRealTimeUpdates() {
+            if (realTimeInterval) {
+                clearInterval(realTimeInterval);
+                realTimeInterval = null;
+            }
+            lastTimestamp = null;
+        }
+
+        function fetchRealTimeData() {
+            let url = '/data?format=json';
+            if (lastTimestamp) {
+                url += `&after_timestamp=${lastTimestamp}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas.length > 0) {
+                        lastTimestamp = data.fechas[data.fechas.length - 1];
+                        updateRealTimeChart(data);
+                    }
+                });
+        }
+
+        function updateRealTimeChart(newData) {
+            if (!chart) {
+                createChart(newData.fechas, newData.pesos);
+            } else {
+                // Actualizar datos existentes
+                const existingData = chart.data.datasets[0].data;
+                const existingLabels = chart.data.labels;
+
+                // Agregar nuevos datos
+                chart.data.labels = [...existingLabels, ...newData.fechas].slice(-MAX_POINTS);
+                chart.data.datasets[0].data = [...existingData, ...newData.pesos].slice(-MAX_POINTS);
+                
+                chart.update('none'); // Actualizar sin animación para mejor rendimiento
             }
         }
 
@@ -105,6 +183,9 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: isRealTime ? 0 : 1000 // Sin animación en tiempo real
+                    },
                     scales: {
                         x: {
                             title: {
@@ -121,6 +202,20 @@
                     }
                 }
             });
+        }
+
+        function toggleTable() {
+            const tableDiv = document.getElementById('csv-table');
+            const toggleBtn = document.getElementById('toggleTableBtn');
+            tableVisible = !tableVisible;
+            
+            if (tableVisible) {
+                tableDiv.classList.remove('hidden');
+                toggleBtn.textContent = 'Ocultar Tabla';
+            } else {
+                tableDiv.classList.add('hidden');
+                toggleBtn.textContent = 'Mostrar Tabla';
+            }
         }
 
         function fetchData() {
@@ -151,17 +246,17 @@
                 });
         }
 
-        // Auto fetch every 5 seconds if no filters are applied
+        // Modificar autoFetch para que no se ejecute en modo tiempo real
         function autoFetch() {
-            if (!document.getElementById('fecha_inicio').value && 
+            if (!isRealTime && 
+                !document.getElementById('fecha_inicio').value && 
                 !document.getElementById('fecha_fin').value) {
                 fetchData();
             }
         }
         
         setInterval(autoFetch, 5000);
-        // Initial fetch
-        fetchData();
+        fetchData(); // Initial fetch
     </script>
 </body>
 </html>

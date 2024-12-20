@@ -31,17 +31,27 @@ def get_db_data():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         format_type = request.args.get('format', 'html')
+        after_timestamp = request.args.get('after_timestamp')  # Para tiempo real
         
         query = 'SELECT * FROM public.tension'
         params = []
         
-        if fecha_inicio and fecha_fin:
+        if after_timestamp:
+            # Para tiempo real: obtener solo datos nuevos después del último timestamp
+            query += ' WHERE fecha > %s'
+            params = [after_timestamp]
+        elif fecha_inicio and fecha_fin:
+            # Para modo histórico: filtrar por rango de fechas
             query += ' WHERE fecha BETWEEN %s AND %s'
             fecha_inicio = datetime.fromisoformat(fecha_inicio).strftime('%Y-%m-%d %H:%M:%S')
             fecha_fin = datetime.fromisoformat(fecha_fin).strftime('%Y-%m-%d %H:%M:%S')
             params = [fecha_inicio, fecha_fin]
         
         query += ' ORDER BY fecha DESC'
+        
+        if after_timestamp:
+            # Para tiempo real: limitar a los últimos N registros
+            query += ' LIMIT 50'
         
         conn = get_db_connection()
         df = pd.read_sql_query(query, conn, params=params)
