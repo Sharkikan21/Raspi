@@ -109,6 +109,31 @@
         #aplicarZonasBtn.active {
             background-color: #1565C0;
         }
+        .pernos-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -117,6 +142,17 @@
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
         <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
+        <div class="pernos-selector">
+            <label>Seleccionar Pernos:</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="selectAll" checked onchange="toggleAllPernos()"> Todos</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="1" checked> Perno 1</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="2" checked> Perno 2</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="3" checked> Perno 3</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="4" checked> Perno 4</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="5" checked> Perno 5</label>
+            </div>
+        </div>
         <div id="filterControls" style="display: inline-block;">
             <label>Desde: </label>
             <input type="datetime-local" id="fecha_inicio">
@@ -168,6 +204,7 @@
             observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
             critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
         };
+        let selectedPernos = new Set([1, 2, 3, 4, 5]);
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -188,17 +225,20 @@
         }
 
         function startRealTimeUpdates() {
-            // Obtener el último dato antes de iniciar tiempo real
             fetch('/data?format=json&limit=1')
                 .then(response => response.json())
                 .then(data => {
                     if (data.fechas.length > 0) {
-                        // Guardar el último dato como punto inicial
                         lastTimestamp = data.fechas[0];
-                        createChart(data.fechas, data.pesos);
+                        createChart(data.fechas, {
+                            perno_1: data.perno_1,
+                            perno_2: data.perno_2,
+                            perno_3: data.perno_3,
+                            perno_4: data.perno_4,
+                            perno_5: data.perno_5
+                        });
                     }
                     
-                    // Configurar actualización periódica
                     if (realTimeInterval) {
                         clearInterval(realTimeInterval);
                     }
@@ -449,7 +489,6 @@
             const fechaInicio = document.getElementById('fecha_inicio').value;
             const fechaFin = document.getElementById('fecha_fin').value;
             
-            // Fetch table data
             let tableUrl = '/data';
             let chartUrl = '/data?format=json';
             
@@ -458,22 +497,26 @@
                 chartUrl += `&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
             }
             
-            // Fetch and update table
             fetch(tableUrl)
                 .then(response => response.text())
                 .then(data => {
                     document.getElementById('csv-table').innerHTML = data;
                 });
                 
-            // Fetch and update chart
             fetch(chartUrl)
                 .then(response => response.json())
                 .then(data => {
-                    createChart(data.fechas, data.pesos);
+                    createChart(data.fechas, {
+                        perno_1: data.perno_1,
+                        perno_2: data.perno_2,
+                        perno_3: data.perno_3,
+                        perno_4: data.perno_4,
+                        perno_5: data.perno_5
+                    });
+                    updateChartVisibility();
                 });
         }
 
-        // Modificar autoFetch para que no se ejecute en modo tiempo real
         function autoFetch() {
             if (!isRealTime && 
                 !document.getElementById('fecha_inicio').value && 
@@ -553,6 +596,53 @@
             
             updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
         }
+
+        function toggleAllPernos() {
+            const selectAll = document.getElementById('selectAll');
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                const pernoNum = parseInt(checkbox.dataset.perno);
+                if (selectAll.checked) {
+                    selectedPernos.add(pernoNum);
+                } else {
+                    selectedPernos.delete(pernoNum);
+                }
+            });
+            
+            updateChartVisibility();
+        }
+
+        function togglePerno(pernoNum) {
+            const checkbox = document.querySelector(`.perno-checkbox[data-perno="${pernoNum}"]`);
+            if (checkbox.checked) {
+                selectedPernos.add(pernoNum);
+            } else {
+                selectedPernos.delete(pernoNum);
+                document.getElementById('selectAll').checked = false;
+            }
+            updateChartVisibility();
+        }
+
+        function updateChartVisibility() {
+            if (!chart) return;
+            
+            // Actualizar visibilidad de cada perno
+            for (let i = 0; i < 5; i++) {
+                chart.data.datasets[i].hidden = !selectedPernos.has(i + 1);
+            }
+            chart.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    togglePerno(parseInt(this.dataset.perno));
+                });
+            });
+        });
     </script>
 </body>
 </html>
