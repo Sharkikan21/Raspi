@@ -92,6 +92,18 @@
         #zonasBtn.active {
             background-color: #37474f;
         }
+        .zona-toggle {
+            margin-bottom: 15px;
+            padding: 5px 0;
+        }
+        .zona-toggle input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        .zona-toggle label {
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -112,6 +124,10 @@
     
     <div class="zonas-container hidden" id="zonasContainer">
         <h3>Configuración de Zonas de Operación</h3>
+        <div class="zona-toggle">
+            <input type="checkbox" id="mostrarZonas" checked onchange="toggleZonasVisibility()">
+            <label for="mostrarZonas">Mostrar Zonas</label>
+        </div>
         <div class="zona-config">
             <label>Zona de Trabajo Normal:</label>
             <input type="number" id="trabajoMin" value="115" onchange="updateRangos()"> -
@@ -235,6 +251,8 @@
         }
 
         function createChart(fechas, pesos) {
+            const mostrarZonas = document.getElementById('mostrarZonas')?.checked ?? true;
+            
             if (chart) {
                 chart.destroy();
             }
@@ -262,13 +280,15 @@
                             backgroundColor: zonas.trabajo.color,
                             fill: '+1',
                             pointRadius: 0,
-                            z: 1
+                            z: 1,
+                            hidden: !mostrarZonas
                         },
                         {
                             data: Array(fechas.length).fill(zonas.trabajo.min),
                             borderColor: 'transparent',
                             fill: false,
-                            pointRadius: 0
+                            pointRadius: 0,
+                            hidden: !mostrarZonas
                         },
                         {
                             label: 'Zona de Observación',
@@ -277,13 +297,15 @@
                             backgroundColor: zonas.observacion.color,
                             fill: '+1',
                             pointRadius: 0,
-                            z: 2
+                            z: 2,
+                            hidden: !mostrarZonas
                         },
                         {
                             data: Array(fechas.length).fill(zonas.observacion.min),
                             borderColor: 'transparent',
                             fill: false,
-                            pointRadius: 0
+                            pointRadius: 0,
+                            hidden: !mostrarZonas
                         },
                         {
                             label: 'Zona Crítica',
@@ -292,7 +314,8 @@
                             backgroundColor: zonas.critica.color,
                             fill: '+1',
                             pointRadius: 0,
-                            z: 3
+                            z: 3,
+                            hidden: !mostrarZonas
                         }
                     ]
                 },
@@ -444,6 +467,17 @@
             } else {
                 zonasContainer.classList.add('hidden');
                 zonasBtn.classList.remove('active');
+            }
+        }
+
+        function toggleZonasVisibility() {
+            const mostrarZonas = document.getElementById('mostrarZonas').checked;
+            if (chart) {
+                // Actualizar la visibilidad de los datasets de zonas (índices 1-6)
+                for (let i = 1; i < chart.data.datasets.length; i++) {
+                    chart.data.datasets[i].hidden = !mostrarZonas;
+                }
+                chart.update();
             }
         }
     </script>
