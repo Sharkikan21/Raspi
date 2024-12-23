@@ -184,13 +184,19 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: {
-                        duration: isRealTime ? 0 : 1000 // Sin animación en tiempo real
+                        duration: isRealTime ? 0 : 1000
                     },
                     scales: {
                         x: {
                             title: {
                                 display: true,
                                 text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 45
                             }
                         },
                         y: {
@@ -198,8 +204,8 @@
                                 display: true,
                                 text: 'Tensión (kilbf)'
                             },
-                            min: 0,    // Establecer el mínimo en 0
-                            max: 200,  // Establecer el máximo en 200
+                            min: 0,
+                            max: 200,
                             suggestedMin: 0,
                             suggestedMax: 200
                         }
