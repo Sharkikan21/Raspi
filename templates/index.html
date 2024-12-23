@@ -110,16 +110,22 @@
         }
 
         function startRealTimeUpdates() {
-            // Limpiar cualquier intervalo existente
-            if (realTimeInterval) {
-                clearInterval(realTimeInterval);
-            }
-
-            // Obtener datos iniciales
-            fetchRealTimeData();
-            
-            // Configurar actualización periódica
-            realTimeInterval = setInterval(fetchRealTimeData, 1000); // Actualizar cada segundo
+            // Obtener el último dato antes de iniciar tiempo real
+            fetch('/data?format=json&limit=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas.length > 0) {
+                        // Guardar el último dato como punto inicial
+                        lastTimestamp = data.fechas[0];
+                        createChart(data.fechas, data.pesos);
+                    }
+                    
+                    // Configurar actualización periódica
+                    if (realTimeInterval) {
+                        clearInterval(realTimeInterval);
+                    }
+                    realTimeInterval = setInterval(fetchRealTimeData, 1000);
+                });
         }
 
         function stopRealTimeUpdates() {
@@ -150,15 +156,25 @@
             if (!chart) {
                 createChart(newData.fechas, newData.pesos);
             } else {
-                // Actualizar datos existentes
+                // Mantener los datos existentes
                 const existingData = chart.data.datasets[0].data;
                 const existingLabels = chart.data.labels;
 
-                // Agregar nuevos datos
-                chart.data.labels = [...existingLabels, ...newData.fechas].slice(-MAX_POINTS);
-                chart.data.datasets[0].data = [...existingData, ...newData.pesos].slice(-MAX_POINTS);
+                // Filtrar datos duplicados
+                const newDataPoints = newData.pesos.filter((_, index) => {
+                    const newDate = new Date(newData.fechas[index]);
+                    return !existingLabels.includes(newData.fechas[index]);
+                });
+
+                const newLabels = newData.fechas.filter(fecha => 
+                    !existingLabels.includes(fecha)
+                );
+
+                // Agregar nuevos datos manteniendo el límite
+                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
+                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
                 
-                chart.update('none'); // Actualizar sin animación para mejor rendimiento
+                chart.update('none');
             }
         }
 

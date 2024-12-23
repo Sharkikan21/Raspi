@@ -31,17 +31,16 @@ def get_db_data():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         format_type = request.args.get('format', 'html')
-        after_timestamp = request.args.get('after_timestamp')  # Para tiempo real
+        after_timestamp = request.args.get('after_timestamp')
+        limit = request.args.get('limit')
         
         query = 'SELECT * FROM public.tension'
         params = []
         
         if after_timestamp:
-            # Para tiempo real: obtener solo datos nuevos después del último timestamp
             query += ' WHERE fecha > %s'
             params = [after_timestamp]
         elif fecha_inicio and fecha_fin:
-            # Para modo histórico: filtrar por rango de fechas
             query += ' WHERE fecha BETWEEN %s AND %s'
             fecha_inicio = datetime.fromisoformat(fecha_inicio).strftime('%Y-%m-%d %H:%M:%S')
             fecha_fin = datetime.fromisoformat(fecha_fin).strftime('%Y-%m-%d %H:%M:%S')
@@ -49,8 +48,9 @@ def get_db_data():
         
         query += ' ORDER BY fecha DESC'
         
-        if after_timestamp:
-            # Para tiempo real: limitar a los últimos N registros
+        if limit:
+            query += f' LIMIT {int(limit)}'
+        elif after_timestamp:
             query += ' LIMIT 50'
         
         conn = get_db_connection()
