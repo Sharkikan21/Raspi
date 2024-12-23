@@ -92,17 +92,22 @@
         #zonasBtn.active {
             background-color: #37474f;
         }
-        .zona-toggle {
-            margin-bottom: 15px;
-            padding: 5px 0;
+        .zona-actions {
+            margin-top: 20px;
+            text-align: right;
         }
-        .zona-toggle input[type="checkbox"] {
-            margin-right: 8px;
-            transform: scale(1.2);
+        
+        #aplicarZonasBtn {
+            background-color: #2196F3;
+            min-width: 120px;
         }
-        .zona-toggle label {
-            font-weight: bold;
-            cursor: pointer;
+        
+        #aplicarZonasBtn:hover {
+            background-color: #1976D2;
+        }
+        
+        #aplicarZonasBtn.active {
+            background-color: #1565C0;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -124,23 +129,24 @@
     
     <div class="zonas-container hidden" id="zonasContainer">
         <h3>Configuración de Zonas de Operación</h3>
-        <div class="zona-toggle">
-            <input type="checkbox" id="mostrarZonas" checked onchange="toggleZonasVisibility()">
-            <label for="mostrarZonas">Mostrar Zonas</label>
-        </div>
         <div class="zona-config">
             <label>Zona de Trabajo Normal:</label>
-            <input type="number" id="trabajoMin" value="115" onchange="updateRangos()"> -
-            <input type="number" id="trabajoMax" value="175" onchange="updateRangos()"> KLBF
+            <input type="number" id="trabajoMin" value="115"> -
+            <input type="number" id="trabajoMax" value="175"> KLBF
         </div>
         <div class="zona-config">
             <label>Zona de Observación:</label>
-            <input type="number" id="observacionMin" value="90" onchange="updateRangos()"> -
-            <input type="number" id="observacionMax" value="115" onchange="updateRangos()"> KLBF
+            <input type="number" id="observacionMin" value="90"> -
+            <input type="number" id="observacionMax" value="115"> KLBF
         </div>
         <div class="zona-config">
             <label>Zona Crítica:</label>
-            0 - <input type="number" id="criticaMax" value="90" onchange="updateRangos()"> KLBF
+            0 - <input type="number" id="criticaMax" value="90"> KLBF
+        </div>
+        <div class="zona-actions">
+            <button class="button" id="aplicarZonasBtn" onclick="aplicarZonas()">
+                <span id="zonasButtonText">Mostrar Zonas</span>
+            </button>
         </div>
     </div>
     
@@ -251,8 +257,6 @@
         }
 
         function createChart(fechas, pesos) {
-            const mostrarZonas = document.getElementById('mostrarZonas')?.checked ?? true;
-            
             if (chart) {
                 chart.destroy();
             }
@@ -281,14 +285,14 @@
                             fill: '+1',
                             pointRadius: 0,
                             z: 1,
-                            hidden: !mostrarZonas
+                            hidden: !zonasVisible
                         },
                         {
                             data: Array(fechas.length).fill(zonas.trabajo.min),
                             borderColor: 'transparent',
                             fill: false,
                             pointRadius: 0,
-                            hidden: !mostrarZonas
+                            hidden: !zonasVisible
                         },
                         {
                             label: 'Zona de Observación',
@@ -298,14 +302,14 @@
                             fill: '+1',
                             pointRadius: 0,
                             z: 2,
-                            hidden: !mostrarZonas
+                            hidden: !zonasVisible
                         },
                         {
                             data: Array(fechas.length).fill(zonas.observacion.min),
                             borderColor: 'transparent',
                             fill: false,
                             pointRadius: 0,
-                            hidden: !mostrarZonas
+                            hidden: !zonasVisible
                         },
                         {
                             label: 'Zona Crítica',
@@ -315,7 +319,7 @@
                             fill: '+1',
                             pointRadius: 0,
                             z: 3,
-                            hidden: !mostrarZonas
+                            hidden: !zonasVisible
                         }
                     ]
                 },
@@ -470,15 +474,29 @@
             }
         }
 
-        function toggleZonasVisibility() {
-            const mostrarZonas = document.getElementById('mostrarZonas').checked;
-            if (chart) {
-                // Actualizar la visibilidad de los datasets de zonas (índices 1-6)
-                for (let i = 1; i < chart.data.datasets.length; i++) {
-                    chart.data.datasets[i].hidden = !mostrarZonas;
-                }
-                chart.update();
+        let zonasVisible = false;
+
+        function aplicarZonas() {
+            zonasVisible = !zonasVisible;
+            const btnText = document.getElementById('zonasButtonText');
+            const aplicarBtn = document.getElementById('aplicarZonasBtn');
+            
+            if (zonasVisible) {
+                btnText.textContent = 'Ocultar Zonas';
+                aplicarBtn.classList.add('active');
+            } else {
+                btnText.textContent = 'Mostrar Zonas';
+                aplicarBtn.classList.remove('active');
             }
+
+            // Actualizar los rangos y aplicar visibilidad
+            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
+            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
+            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
+            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
+            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
+            
+            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
         }
     </script>
 </body>
