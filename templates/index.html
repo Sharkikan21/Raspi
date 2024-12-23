@@ -232,96 +232,150 @@
 
         function updateRealTimeChart(newData) {
             if (!chart) {
-                createChart(newData.fechas, newData.pesos);
+                createChart(newData.fechas, {
+                    perno_1: newData.perno_1,
+                    perno_2: newData.perno_2,
+                    perno_3: newData.perno_3,
+                    perno_4: newData.perno_4,
+                    perno_5: newData.perno_5
+                });
             } else {
-                // Mantener los datos existentes
-                const existingData = chart.data.datasets[0].data;
                 const existingLabels = chart.data.labels;
 
                 // Filtrar datos duplicados
-                const newDataPoints = newData.pesos.filter((_, index) => {
-                    const newDate = new Date(newData.fechas[index]);
-                    return !existingLabels.includes(newData.fechas[index]);
-                });
-
                 const newLabels = newData.fechas.filter(fecha => 
                     !existingLabels.includes(fecha)
                 );
 
-                // Agregar nuevos datos manteniendo el límite
+                // Actualizar datos para cada perno
+                for (let i = 0; i < 5; i++) {
+                    const pernoKey = `perno_${i+1}`;
+                    const existingData = chart.data.datasets[i].data;
+                    const newDataPoints = newData[pernoKey].filter((_, index) => 
+                        !existingLabels.includes(newData.fechas[index])
+                    );
+                    chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                }
+
                 chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
-                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
-                
                 chart.update('none');
             }
         }
 
-        function createChart(fechas, pesos) {
+        function createChart(fechas, pernos) {
             if (chart) {
                 chart.destroy();
             }
 
             const ctx = document.getElementById('tensionChart').getContext('2d');
+            
+            // Crear datasets para cada perno
+            const pernoDatasets = [
+                {
+                    label: 'Perno 1',
+                    data: pernos.perno_1,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 2',
+                    data: pernos.perno_2,
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 3',
+                    data: pernos.perno_3,
+                    borderColor: 'rgb(255, 205, 86)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 4',
+                    data: pernos.perno_4,
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 5',
+                    data: pernos.perno_5,
+                    borderColor: 'rgb(153, 102, 255)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                }
+            ];
+
+            // Agregar datasets de zonas
+            const zonaDatasets = [
+                {
+                    label: 'Zona de Trabajo Normal',
+                    data: Array(fechas.length).fill(zonas.trabajo.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.trabajo.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 1,
+                    hidden: !zonasVisible
+                },
+                {
+                    data: Array(fechas.length).fill(zonas.trabajo.min),
+                    borderColor: 'transparent',
+                    fill: false,
+                    pointRadius: 0,
+                    hidden: !zonasVisible
+                },
+                {
+                    label: 'Zona de Observación',
+                    data: Array(fechas.length).fill(zonas.observacion.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.observacion.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 2,
+                    hidden: !zonasVisible
+                },
+                {
+                    data: Array(fechas.length).fill(zonas.observacion.min),
+                    borderColor: 'transparent',
+                    fill: false,
+                    pointRadius: 0,
+                    hidden: !zonasVisible
+                },
+                {
+                    label: 'Zona Crítica',
+                    data: Array(fechas.length).fill(zonas.critica.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.critica.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 3,
+                    hidden: !zonasVisible
+                }
+            ];
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [
-                        {
-                            label: 'Tensión (kilbf)',
-                            data: pesos,
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1,
-                            fill: false,
-                            borderWidth: 2,
-                            pointRadius: 2,
-                            z: 10
-                        },
-                        {
-                            label: 'Zona de Trabajo Normal',
-                            data: Array(fechas.length).fill(zonas.trabajo.max),
-                            borderColor: 'transparent',
-                            backgroundColor: zonas.trabajo.color,
-                            fill: '+1',
-                            pointRadius: 0,
-                            z: 1,
-                            hidden: !zonasVisible
-                        },
-                        {
-                            data: Array(fechas.length).fill(zonas.trabajo.min),
-                            borderColor: 'transparent',
-                            fill: false,
-                            pointRadius: 0,
-                            hidden: !zonasVisible
-                        },
-                        {
-                            label: 'Zona de Observación',
-                            data: Array(fechas.length).fill(zonas.observacion.max),
-                            borderColor: 'transparent',
-                            backgroundColor: zonas.observacion.color,
-                            fill: '+1',
-                            pointRadius: 0,
-                            z: 2,
-                            hidden: !zonasVisible
-                        },
-                        {
-                            data: Array(fechas.length).fill(zonas.observacion.min),
-                            borderColor: 'transparent',
-                            fill: false,
-                            pointRadius: 0,
-                            hidden: !zonasVisible
-                        },
-                        {
-                            label: 'Zona Crítica',
-                            data: Array(fechas.length).fill(zonas.critica.max),
-                            borderColor: 'transparent',
-                            backgroundColor: zonas.critica.color,
-                            fill: '+1',
-                            pointRadius: 0,
-                            z: 3,
-                            hidden: !zonasVisible
-                        }
-                    ]
+                    datasets: [...pernoDatasets, ...zonaDatasets]
                 },
                 options: {
                     responsive: true,
@@ -331,6 +385,7 @@
                     },
                     plugins: {
                         legend: {
+                            position: 'top',
                             labels: {
                                 filter: function(legendItem, data) {
                                     return legendItem.text !== undefined;
@@ -340,8 +395,8 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    if (context.dataset.label === 'Tensión (kilbf)') {
-                                        return `Tensión: ${context.raw} KLBF`;
+                                    if (context.dataset.label.startsWith('Perno')) {
+                                        return `${context.dataset.label}: ${context.raw} KLBF`;
                                     }
                                     return context.dataset.label;
                                 }
@@ -364,7 +419,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Tensión (kilbf)'
+                                text: 'Tensión (KLBF)'
                             },
                             min: 0,
                             max: 200,

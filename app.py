@@ -60,7 +60,11 @@ def get_db_data():
         if format_type == 'json':
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'pesos': df['peso_kilbf'].tolist()
+                'perno_1': df['perno_1'].tolist(),
+                'perno_2': df['perno_2'].tolist(),
+                'perno_3': df['perno_3'].tolist(),
+                'perno_4': df['perno_4'].tolist(),
+                'perno_5': df['perno_5'].tolist()
             }
             return jsonify(data)
         else:
