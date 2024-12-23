@@ -60,6 +60,24 @@
             opacity: 0.5;
             pointer-events: none;
         }
+        .zonas-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .zona-config {
+            margin: 10px 0;
+        }
+        .zona-config input {
+            width: 70px;
+            margin: 0 5px;
+            padding: 3px;
+        }
+        .zona-config label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -77,6 +95,24 @@
         <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
     
+    <div class="zonas-container">
+        <h3>Configuración de Zonas</h3>
+        <div class="zona-config">
+            <label>Zona de Trabajo Normal:</label>
+            <input type="number" id="trabajoMin" value="115" onchange="updateRangos()"> -
+            <input type="number" id="trabajoMax" value="175" onchange="updateRangos()"> KLBF
+        </div>
+        <div class="zona-config">
+            <label>Zona de Observación:</label>
+            <input type="number" id="observacionMin" value="90" onchange="updateRangos()"> -
+            <input type="number" id="observacionMax" value="115" onchange="updateRangos()"> KLBF
+        </div>
+        <div class="zona-config">
+            <label>Zona Crítica:</label>
+            0 - <input type="number" id="criticaMax" value="90" onchange="updateRangos()"> KLBF
+        </div>
+    </div>
+    
     <div class="chart-container">
         <canvas id="tensionChart"></canvas>
     </div>
@@ -90,6 +126,11 @@
         let realTimeInterval = null;
         const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
         let lastTimestamp = null;
+        let zonas = {
+            trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
+            observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
+            critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.1)'}
+        };
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -188,19 +229,82 @@
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [{
-                        label: 'Tensión (kilbf)',
-                        data: pesos,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1,
-                        fill: false
-                    }]
+                    datasets: [
+                        {
+                            label: 'Tensión (kilbf)',
+                            data: pesos,
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 2,
+                            z: 10
+                        },
+                        {
+                            label: 'Zona de Trabajo Normal',
+                            data: Array(fechas.length).fill(zonas.trabajo.max),
+                            borderColor: 'transparent',
+                            backgroundColor: zonas.trabajo.color,
+                            fill: '+1',
+                            pointRadius: 0,
+                            z: 1
+                        },
+                        {
+                            data: Array(fechas.length).fill(zonas.trabajo.min),
+                            borderColor: 'transparent',
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Zona de Observación',
+                            data: Array(fechas.length).fill(zonas.observacion.max),
+                            borderColor: 'transparent',
+                            backgroundColor: zonas.observacion.color,
+                            fill: '+1',
+                            pointRadius: 0,
+                            z: 2
+                        },
+                        {
+                            data: Array(fechas.length).fill(zonas.observacion.min),
+                            borderColor: 'transparent',
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Zona Crítica',
+                            data: Array(fechas.length).fill(zonas.critica.max),
+                            borderColor: 'transparent',
+                            backgroundColor: zonas.critica.color,
+                            fill: '+1',
+                            pointRadius: 0,
+                            z: 3
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: {
                         duration: isRealTime ? 0 : 1000
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                filter: function(legendItem, data) {
+                                    return legendItem.text !== undefined;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label === 'Tensión (kilbf)') {
+                                        return `Tensión: ${context.raw} KLBF`;
+                                    }
+                                    return context.dataset.label;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         x: {
@@ -283,6 +387,37 @@
         
         setInterval(autoFetch, 5000);
         fetchData(); // Initial fetch
+
+        function updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax) {
+            zonas = {
+                trabajo: {
+                    min: trabajoMin,
+                    max: trabajoMax,
+                    color: 'rgba(0, 255, 0, 0.1)'
+                },
+                observacion: {
+                    min: observacionMin,
+                    max: observacionMax,
+                    color: 'rgba(255, 255, 0, 0.1)'
+                },
+                critica: {
+                    min: 0,
+                    max: criticaMax,
+                    color: 'rgba(255, 0, 0, 0.1)'
+                }
+            };
+            fetchData(); // Actualizar el gráfico con las nuevas zonas
+        }
+
+        function updateRangos() {
+            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
+            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
+            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
+            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
+            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
+            
+            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
+        }
     </script>
 </body>
 </html>
