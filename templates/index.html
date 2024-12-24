@@ -380,17 +380,17 @@
                     data: Array(fechas.length).fill(zonas.trabajo.max),
                     borderColor: 'rgba(0, 255, 0, 0.5)',
                     backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                    fill: false,
+                    fill: '+1',
                     pointRadius: 0,
                     z: 1
                 });
                 
                 zonasDatasets.push({
-                    label: false,  // Sin etiqueta para no mostrar en la leyenda
+                    label: false,
                     data: Array(fechas.length).fill(zonas.trabajo.min),
                     borderColor: 'rgba(0, 255, 0, 0.5)',
                     backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                    fill: '-1',  // Rellenar hasta el dataset anterior
+                    fill: false,
                     pointRadius: 0,
                     z: 1
                 });
@@ -401,7 +401,7 @@
                     data: Array(fechas.length).fill(zonas.observacion.max),
                     borderColor: 'rgba(255, 255, 0, 0.5)',
                     backgroundColor: 'rgba(255, 255, 0, 0.1)',
-                    fill: false,
+                    fill: '+1',
                     pointRadius: 0,
                     z: 2
                 });
@@ -411,7 +411,7 @@
                     data: Array(fechas.length).fill(zonas.observacion.min),
                     borderColor: 'rgba(255, 255, 0, 0.5)',
                     backgroundColor: 'rgba(255, 255, 0, 0.1)',
-                    fill: '-1',
+                    fill: false,
                     pointRadius: 0,
                     z: 2
                 });
@@ -609,12 +609,37 @@
             if (zonasVisible) {
                 btnText.textContent = 'Ocultar Zonas';
                 aplicarBtn.classList.add('active');
+                
+                // Actualizar los valores de las zonas
+                const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
+                const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
+                const observacionMin = parseFloat(document.getElementById('observacionMin').value);
+                const observacionMax = parseFloat(document.getElementById('observacionMax').value);
+                const criticaMax = parseFloat(document.getElementById('criticaMax').value);
+                
+                zonas = {
+                    trabajo: {
+                        min: trabajoMin,
+                        max: trabajoMax,
+                        color: 'rgba(0, 255, 0, 0.1)'
+                    },
+                    observacion: {
+                        min: observacionMin,
+                        max: observacionMax,
+                        color: 'rgba(255, 255, 0, 0.1)'
+                    },
+                    critica: {
+                        min: 0,
+                        max: criticaMax,
+                        color: 'rgba(255, 0, 0, 0.2)'
+                    }
+                };
             } else {
                 btnText.textContent = 'Mostrar Zonas';
                 aplicarBtn.classList.remove('active');
             }
             
-            // Actualizar el gráfico con las nuevas zonas
+            // Actualizar el gráfico
             fetchData();
         }
 
