@@ -23,161 +23,19 @@
 </head>
 <body>
     <h1>Datos de Tensión</h1>
-    <div class="chart-container">
-        <canvas id="tensionChart"></canvas>
-    </div>
-    
     <div class="gauge-container">
         <canvas id="gaugeChart"></canvas>
     </div>
 
     <script>
-        let chart = null;
-        let gaugeChart = null;
-        const MAX_POINTS = 50;
-        let lastTimestamp = null;
-        let selectedPernos = new Set([1, 2, 3, 4, 5]);
-
-        function fetchData() {
-            fetch('/data?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    createChart(data.fechas, {
-                        perno_1: data.perno_1,
-                        perno_2: data.perno_2,
-                        perno_3: data.perno_3,
-                        perno_4: data.perno_4,
-                        perno_5: data.perno_5
-                    });
-                    updateGauge(data);
-                });
-        }
-
-        function createChart(fechas, pernos) {
-            if (chart) {
-                chart.destroy();
-            }
-
-            const ctx = document.getElementById('tensionChart').getContext('2d');
-            
-            const pernoDatasets = [
-                {
-                    label: 'Perno 1',
-                    data: pernos.perno_1,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    hidden: !selectedPernos.has(1),
-                    z: 10
-                },
-                {
-                    label: 'Perno 2',
-                    data: pernos.perno_2,
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    hidden: !selectedPernos.has(2),
-                    z: 10
-                },
-                {
-                    label: 'Perno 3',
-                    data: pernos.perno_3,
-                    borderColor: 'rgb(255, 205, 86)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    hidden: !selectedPernos.has(3),
-                    z: 10
-                },
-                {
-                    label: 'Perno 4',
-                    data: pernos.perno_4,
-                    borderColor: 'rgb(54, 162, 235)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    hidden: !selectedPernos.has(4),
-                    z: 10
-                },
-                {
-                    label: 'Perno 5',
-                    data: pernos.perno_5,
-                    borderColor: 'rgb(153, 102, 255)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    hidden: !selectedPernos.has(5),
-                    z: 10
-                }
-            ];
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: fechas,
-                    datasets: pernoDatasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 1000
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fecha y Hora'
-                            },
-                            ticks: {
-                                maxTicksLimit: 10,
-                                autoSkip: true,
-                                maxRotation: 45,
-                                minRotation: 45
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200,
-                            ticks: {
-                                stepSize: 20
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateGauge(data) {
-            if (gaugeChart) {
-                gaugeChart.destroy();
-            }
-
+        function createGauge(value) {
             const ctx = document.getElementById('gaugeChart').getContext('2d');
-            const lastValue = data.perno_1[data.perno_1.length - 1]; // Último valor del Perno 1
-
-            gaugeChart = new Chart(ctx, {
+            new Chart(ctx, {
                 type: 'gauge',
                 data: {
                     datasets: [{
-                        data: [lastValue],
-                        value: lastValue,
+                        data: [value],
+                        value: value,
                         backgroundColor: ['#ff0000', '#ffff00', '#00ff00'],
                         borderWidth: 2
                     }]
@@ -212,8 +70,9 @@
             });
         }
 
-        setInterval(fetchData, 5000);
-        fetchData(); // Initial fetch
+        // Simulación de un valor inicial
+        const initialValue = 144.939;
+        createGauge(initialValue);
     </script>
 </body>
 </html>
