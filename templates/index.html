@@ -386,55 +386,35 @@
             
             // Solo agregar las zonas si están visibles
             if (zonasVisible) {
-                // Zona de trabajo normal
-                zonasDatasets.push({
-                    label: 'Zona de Trabajo Normal',
-                    data: Array(fechas.length).fill(zonas.trabajo.max),
-                    borderColor: 'rgba(0, 255, 0, 0.8)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.3)',
-                    fill: 1,
-                    pointRadius: 0,
-                    z: 1
-                });
-                
-                zonasDatasets.push({
-                    label: false,
-                    data: Array(fechas.length).fill(zonas.trabajo.min),
-                    borderColor: 'rgba(0, 255, 0, 0.8)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.3)',
-                    fill: false,
-                    pointRadius: 0,
-                    z: 1
-                });
-
-                // Zona de observación
-                zonasDatasets.push({
-                    label: 'Zona de Observación',
-                    data: Array(fechas.length).fill(zonas.observacion.max),
-                    borderColor: 'rgba(255, 255, 0, 0.8)',
-                    backgroundColor: 'rgba(255, 255, 0, 0.3)',
-                    fill: 1,
-                    pointRadius: 0,
-                    z: 2
-                });
-                
-                zonasDatasets.push({
-                    label: false,
-                    data: Array(fechas.length).fill(zonas.observacion.min),
-                    borderColor: 'rgba(255, 255, 0, 0.8)',
-                    backgroundColor: 'rgba(255, 255, 0, 0.3)',
-                    fill: false,
-                    pointRadius: 0,
-                    z: 2
-                });
-
-                // Zona crítica
+                // Zona crítica (0-90)
                 zonasDatasets.push({
                     label: 'Zona Crítica',
-                    data: Array(fechas.length).fill(zonas.critica.max),
-                    borderColor: 'rgba(255, 0, 0, 0.8)',
-                    backgroundColor: 'rgba(255, 0, 0, 0.3)',
+                    data: Array(fechas.length).fill(90),
+                    borderColor: 'rgba(255, 0, 0, 1)',
+                    backgroundColor: 'rgba(255, 0, 0, 0.2)',
                     fill: true,
+                    pointRadius: 0,
+                    z: 1
+                });
+
+                // Zona de observación (90-115)
+                zonasDatasets.push({
+                    label: 'Zona de Observación',
+                    data: Array(fechas.length).fill(115),
+                    borderColor: 'rgba(255, 255, 0, 1)',
+                    backgroundColor: 'rgba(255, 255, 0, 0.2)',
+                    fill: '-1', // Rellena hasta la zona anterior
+                    pointRadius: 0,
+                    z: 2
+                });
+
+                // Zona de trabajo normal (115-175)
+                zonasDatasets.push({
+                    label: 'Zona de Trabajo Normal',
+                    data: Array(fechas.length).fill(175),
+                    borderColor: 'rgba(0, 255, 0, 1)',
+                    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+                    fill: '-1', // Rellena hasta la zona anterior
                     pointRadius: 0,
                     z: 3
                 });
@@ -444,7 +424,7 @@
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [...zonasDatasets, ...pernoDatasets] // Zonas primero para que estén detrás
+                    datasets: [...zonasDatasets, ...pernoDatasets]
                 },
                 options: {
                     responsive: true,
@@ -456,19 +436,8 @@
                         legend: {
                             position: 'top',
                             labels: {
-                                filter: function(item, chart) {
-                                    // Solo mostrar elementos con etiqueta
-                                    return item.text !== '';
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.dataset.label.startsWith('Perno')) {
-                                        return `${context.dataset.label}: ${context.raw} KLBF`;
-                                    }
-                                    return context.dataset.label;
+                                filter: function(item) {
+                                    return item.text !== undefined && item.text !== '';
                                 }
                             }
                         }
@@ -493,8 +462,9 @@
                             },
                             min: 0,
                             max: 200,
-                            suggestedMin: 0,
-                            suggestedMax: 200
+                            ticks: {
+                                stepSize: 20
+                            }
                         }
                     }
                 }
@@ -610,37 +580,15 @@
             if (zonasVisible) {
                 btnText.textContent = 'Ocultar Zonas';
                 aplicarBtn.classList.add('active');
-                
-                // Actualizar los valores de las zonas
-                const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
-                const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
-                const observacionMin = parseFloat(document.getElementById('observacionMin').value);
-                const observacionMax = parseFloat(document.getElementById('observacionMax').value);
-                const criticaMax = parseFloat(document.getElementById('criticaMax').value);
-                
-                zonas = {
-                    trabajo: {
-                        min: trabajoMin,
-                        max: trabajoMax,
-                        color: 'rgba(0, 255, 0, 0.1)'
-                    },
-                    observacion: {
-                        min: observacionMin,
-                        max: observacionMax,
-                        color: 'rgba(255, 255, 0, 0.1)'
-                    },
-                    critica: {
-                        min: 0,
-                        max: criticaMax,
-                        color: 'rgba(255, 0, 0, 0.2)'
-                    }
-                };
             } else {
                 btnText.textContent = 'Mostrar Zonas';
                 aplicarBtn.classList.remove('active');
             }
             
-            // Actualizar el gráfico
+            // Forzar la actualización del gráfico
+            if (chart) {
+                chart.destroy();
+            }
             fetchData();
         }
 
