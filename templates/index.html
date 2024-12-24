@@ -322,11 +322,11 @@
 
             const ctx = document.getElementById('tensionChart').getContext('2d');
             
-            // Primero crear los datasets de zonas si están visibles
+            // Crear datasets de zonas si están visibles
             const datasets = [];
             
             if (zonasVisible) {
-                // Zona crítica (0-90)
+                // Zona crítica
                 datasets.push({
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
@@ -337,7 +337,7 @@
                     z: 1
                 });
 
-                // Zona de observación (90-115)
+                // Zona de observación
                 datasets.push({
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
@@ -352,7 +352,7 @@
                     z: 2
                 });
 
-                // Zona de trabajo normal (115-175)
+                // Zona de trabajo normal
                 datasets.push({
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
@@ -368,7 +368,7 @@
                 });
             }
 
-            // Agregar los datasets de los pernos
+            // Agregar datasets de pernos
             const pernoDatasets = [
                 {
                     label: 'Perno 1',
@@ -427,7 +427,6 @@
                 }
             ];
 
-            // Agregar los datasets de los pernos después de las zonas
             datasets.push(...pernoDatasets);
 
             chart = new Chart(ctx, {
@@ -602,21 +601,22 @@
             if (zonasVisible) {
                 btnText.textContent = 'Ocultar Zonas';
                 aplicarBtn.classList.add('active');
-                updateZonas(); // Actualizar los valores de las zonas antes de mostrarlas
             } else {
                 btnText.textContent = 'Mostrar Zonas';
                 aplicarBtn.classList.remove('active');
-                if (chart) {
-                    const currentData = {
-                        fechas: chart.data.labels,
-                        perno_1: chart.data.datasets.find(d => d.label === 'Perno 1')?.data || [],
-                        perno_2: chart.data.datasets.find(d => d.label === 'Perno 2')?.data || [],
-                        perno_3: chart.data.datasets.find(d => d.label === 'Perno 3')?.data || [],
-                        perno_4: chart.data.datasets.find(d => d.label === 'Perno 4')?.data || [],
-                        perno_5: chart.data.datasets.find(d => d.label === 'Perno 5')?.data || []
-                    };
-                    createChart(currentData.fechas, currentData);
-                }
+            }
+            
+            // Obtener los datos actuales y volver a crear el gráfico
+            if (chart) {
+                const currentData = {
+                    fechas: chart.data.labels,
+                    perno_1: chart.data.datasets.find(d => d.label === 'Perno 1')?.data || [],
+                    perno_2: chart.data.datasets.find(d => d.label === 'Perno 2')?.data || [],
+                    perno_3: chart.data.datasets.find(d => d.label === 'Perno 3')?.data || [],
+                    perno_4: chart.data.datasets.find(d => d.label === 'Perno 4')?.data || [],
+                    perno_5: chart.data.datasets.find(d => d.label === 'Perno 5')?.data || []
+                };
+                createChart(currentData.fechas, currentData);
             }
         }
 
