@@ -205,6 +205,7 @@
             critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
+        let zonasVisible = false;
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -378,30 +379,61 @@
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
                     borderColor: 'rgba(0, 255, 0, 0.5)',
-                    backgroundColor: zonas.trabajo.color,
-                    fill: true,
+                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                    fill: false,
                     pointRadius: 0,
                     z: 1
                 });
                 
+                zonasDatasets.push({
+                    label: false,  // Sin etiqueta para no mostrar en la leyenda
+                    data: Array(fechas.length).fill(zonas.trabajo.min),
+                    borderColor: 'rgba(0, 255, 0, 0.5)',
+                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                    fill: '-1',  // Rellenar hasta el dataset anterior
+                    pointRadius: 0,
+                    z: 1
+                });
+
                 // Zona de observación
                 zonasDatasets.push({
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
                     borderColor: 'rgba(255, 255, 0, 0.5)',
-                    backgroundColor: zonas.observacion.color,
-                    fill: true,
+                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                    fill: false,
                     pointRadius: 0,
                     z: 2
                 });
                 
+                zonasDatasets.push({
+                    label: false,
+                    data: Array(fechas.length).fill(zonas.observacion.min),
+                    borderColor: 'rgba(255, 255, 0, 0.5)',
+                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                    fill: '-1',
+                    pointRadius: 0,
+                    z: 2
+                });
+
                 // Zona crítica
                 zonasDatasets.push({
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
                     borderColor: 'rgba(255, 0, 0, 0.5)',
-                    backgroundColor: zonas.critica.color,
+                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
                     fill: true,
+                    pointRadius: 0,
+                    z: 3
+                });
+                
+                // Línea base (0)
+                zonasDatasets.push({
+                    label: false,
+                    data: Array(fechas.length).fill(0),
+                    borderColor: 'rgba(255, 0, 0, 0.5)',
+                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                    fill: '-1',
                     pointRadius: 0,
                     z: 3
                 });
@@ -422,6 +454,12 @@
                     plugins: {
                         legend: {
                             position: 'top',
+                            labels: {
+                                filter: function(item, chart) {
+                                    // Solo mostrar elementos con etiqueta
+                                    return item.text !== '';
+                                }
+                            }
                         },
                         tooltip: {
                             callbacks: {
@@ -563,8 +601,6 @@
             }
         }
 
-        let zonasVisible = false;
-
         function aplicarZonas() {
             zonasVisible = !zonasVisible;
             const btnText = document.getElementById('zonasButtonText');
@@ -577,15 +613,9 @@
                 btnText.textContent = 'Mostrar Zonas';
                 aplicarBtn.classList.remove('active');
             }
-
-            // Actualizar los rangos y aplicar visibilidad
-            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
-            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
-            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
-            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
-            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
             
-            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
+            // Actualizar el gráfico con las nuevas zonas
+            fetchData();
         }
 
         function toggleAllPernos() {
