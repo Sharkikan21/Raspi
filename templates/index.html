@@ -7,72 +7,642 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .filter-container { 
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .filter-container input { 
+            margin-right: 10px; 
+            padding: 5px; 
+        }
         .chart-container {
             width: 100%;
             height: 400px;
             margin: 20px 0;
         }
-        .gauge-container {
-            width: 300px;
-            height: 200px;
-            margin: 20px auto;
+        .button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        #toggleTableBtn {
+            background-color: #2196F3;
+        }
+        #toggleTableBtn:hover {
+            background-color: #0b7dda;
+        }
+        #realTimeBtn {
+            background-color: #ff9800;
+        }
+        #realTimeBtn:hover {
+            background-color: #f57c00;
+        }
+        #realTimeBtn.active {
+            background-color: #e65100;
+        }
+        .filter-container.disabled input,
+        .filter-container.disabled button.filter-btn {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .zonas-container {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .zonas-container.hidden {
+            display: none;
+            opacity: 0;
+        }
+        .zona-config {
+            margin: 10px 0;
+        }
+        .zona-config input {
+            width: 70px;
+            margin: 0 5px;
+            padding: 3px;
+        }
+        .zona-config label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        #zonasBtn {
+            background-color: #607d8b;
+        }
+        #zonasBtn:hover {
+            background-color: #455a64;
+        }
+        #zonasBtn.active {
+            background-color: #37474f;
+        }
+        .zona-actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+        
+        #aplicarZonasBtn {
+            background-color: #2196F3;
+            min-width: 120px;
+        }
+        
+        #aplicarZonasBtn:hover {
+            background-color: #1976D2;
+        }
+        
+        #aplicarZonasBtn.active {
+            background-color: #1565C0;
+        }
+        .pernos-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+            cursor: pointer;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-gauge"></script>
 </head>
 <body>
-    <h1>Datos de Tensión</h1>
-    <div class="gauge-container">
-        <canvas id="gaugeChart"></canvas>
+    <h1>Forymec</h1>
+    <div class="filter-container">
+        <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
+        <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
+        <div class="pernos-selector">
+            <label>Seleccionar Pernos:</label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="selectAll" checked onchange="toggleAllPernos()"> Todos</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="1" checked> Perno 1</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="2" checked> Perno 2</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="3" checked> Perno 3</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="4" checked> Perno 4</label>
+                <label><input type="checkbox" class="perno-checkbox" data-perno="5" checked> Perno 5</label>
+            </div>
+        </div>
+        <div id="filterControls" style="display: inline-block;">
+            <label>Desde: </label>
+            <input type="datetime-local" id="fecha_inicio">
+            <label>Hasta: </label>
+            <input type="datetime-local" id="fecha_fin">
+            <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
+        </div>
+        <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
+    
+    <div class="zonas-container hidden" id="zonasContainer">
+        <h3>Configuración de Zonas de Operación</h3>
+        <div class="zona-config">
+            <label>Zona de Trabajo Normal:</label>
+            <input type="number" id="trabajoMin" value="115"> -
+            <input type="number" id="trabajoMax" value="175"> KLBF
+        </div>
+        <div class="zona-config">
+            <label>Zona de Observación:</label>
+            <input type="number" id="observacionMin" value="90"> -
+            <input type="number" id="observacionMax" value="115"> KLBF
+        </div>
+        <div class="zona-config">
+            <label>Zona Crítica:</label>
+            0 - <input type="number" id="criticaMax" value="90"> KLBF
+        </div>
+        <div class="zona-actions">
+            <button class="button" id="aplicarZonasBtn" onclick="aplicarZonas()">
+                <span id="zonasButtonText">Mostrar Zonas</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="chart-container">
+        <canvas id="tensionChart"></canvas>
+    </div>
+    
+    <div id="csv-table" class="hidden">Loading...</div>
 
     <script>
-        function createGauge(value) {
-            const ctx = document.getElementById('gaugeChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'gauge',
+        let chart = null;
+        let tableVisible = false;
+        let isRealTime = false;
+        let realTimeInterval = null;
+        const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
+        let lastTimestamp = null;
+        let zonas = {
+            trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
+            observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
+            critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
+        };
+        let selectedPernos = new Set([1, 2, 3, 4, 5]);
+
+        function toggleRealTime() {
+            isRealTime = !isRealTime;
+            const realTimeBtn = document.getElementById('realTimeBtn');
+            const filterContainer = document.querySelector('.filter-container');
+            
+            if (isRealTime) {
+                realTimeBtn.textContent = 'Detener Tiempo Real';
+                realTimeBtn.classList.add('active');
+                filterContainer.classList.add('disabled');
+                startRealTimeUpdates();
+            } else {
+                realTimeBtn.textContent = 'Iniciar Tiempo Real';
+                realTimeBtn.classList.remove('active');
+                filterContainer.classList.remove('disabled');
+                stopRealTimeUpdates();
+            }
+        }
+
+        function startRealTimeUpdates() {
+            fetch('/data?format=json&limit=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas.length > 0) {
+                        lastTimestamp = data.fechas[0];
+                        createChart(data.fechas, {
+                            perno_1: data.perno_1,
+                            perno_2: data.perno_2,
+                            perno_3: data.perno_3,
+                            perno_4: data.perno_4,
+                            perno_5: data.perno_5
+                        });
+                    }
+                    
+                    if (realTimeInterval) {
+                        clearInterval(realTimeInterval);
+                    }
+                    realTimeInterval = setInterval(fetchRealTimeData, 1000);
+                });
+        }
+
+        function stopRealTimeUpdates() {
+            if (realTimeInterval) {
+                clearInterval(realTimeInterval);
+                realTimeInterval = null;
+            }
+            lastTimestamp = null;
+        }
+
+        function fetchRealTimeData() {
+            let url = '/data?format=json';
+            if (lastTimestamp) {
+                url += `&after_timestamp=${lastTimestamp}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas.length > 0) {
+                        lastTimestamp = data.fechas[data.fechas.length - 1];
+                        updateRealTimeChart(data);
+                    }
+                });
+        }
+
+        function updateRealTimeChart(newData) {
+            if (!chart) {
+                createChart(newData.fechas, {
+                    perno_1: newData.perno_1,
+                    perno_2: newData.perno_2,
+                    perno_3: newData.perno_3,
+                    perno_4: newData.perno_4,
+                    perno_5: newData.perno_5
+                });
+            } else {
+                const existingLabels = chart.data.labels;
+
+                // Filtrar datos duplicados
+                const newLabels = newData.fechas.filter(fecha => 
+                    !existingLabels.includes(fecha)
+                );
+
+                // Actualizar datos para cada perno
+                for (let i = 0; i < 5; i++) {
+                    const pernoKey = `perno_${i+1}`;
+                    const existingData = chart.data.datasets[i].data;
+                    const newDataPoints = newData[pernoKey].filter((_, index) => 
+                        !existingLabels.includes(newData.fechas[index])
+                    );
+                    chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                }
+
+                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
+                chart.update('none');
+            }
+        }
+
+        function createChart(fechas, pernos) {
+            if (chart) {
+                chart.destroy();
+            }
+
+            const ctx = document.getElementById('tensionChart').getContext('2d');
+            
+            // Crear datasets para cada perno
+            const pernoDatasets = [
+                {
+                    label: 'Perno 1',
+                    data: pernos.perno_1,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 2',
+                    data: pernos.perno_2,
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 3',
+                    data: pernos.perno_3,
+                    borderColor: 'rgb(255, 205, 86)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 4',
+                    data: pernos.perno_4,
+                    borderColor: 'rgb(54, 162, 235)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                },
+                {
+                    label: 'Perno 5',
+                    data: pernos.perno_5,
+                    borderColor: 'rgb(153, 102, 255)',
+                    tension: 0.1,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    z: 10
+                }
+            ];
+
+            // Agregar datasets de zonas
+            const zonaDatasets = [
+                {
+                    label: 'Zona de Trabajo Normal',
+                    data: Array(fechas.length).fill(zonas.trabajo.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.trabajo.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 1,
+                    hidden: !zonasVisible
+                },
+                {
+                    data: Array(fechas.length).fill(zonas.trabajo.min),
+                    borderColor: 'transparent',
+                    fill: false,
+                    pointRadius: 0,
+                    hidden: !zonasVisible
+                },
+                {
+                    label: 'Zona de Observación',
+                    data: Array(fechas.length).fill(zonas.observacion.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.observacion.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 2,
+                    hidden: !zonasVisible
+                },
+                {
+                    data: Array(fechas.length).fill(zonas.observacion.min),
+                    borderColor: 'transparent',
+                    fill: false,
+                    pointRadius: 0,
+                    hidden: !zonasVisible
+                },
+                {
+                    label: 'Zona Crítica',
+                    data: Array(fechas.length).fill(zonas.critica.max),
+                    borderColor: 'transparent',
+                    backgroundColor: zonas.critica.color,
+                    fill: '+1',
+                    pointRadius: 0,
+                    z: 3,
+                    hidden: !zonasVisible
+                }
+            ];
+
+            chart = new Chart(ctx, {
+                type: 'line',
                 data: {
-                    datasets: [{
-                        data: [value],
-                        value: value,
-                        backgroundColor: ['#ff0000', '#ffff00', '#00ff00'],
-                        borderWidth: 2
-                    }]
+                    labels: fechas,
+                    datasets: [...pernoDatasets, ...zonaDatasets]
                 },
                 options: {
                     responsive: true,
-                    needle: {
-                        radiusPercentage: 2,
-                        widthPercentage: 3.2,
-                        lengthPercentage: 80,
-                        color: 'rgba(0, 0, 0, 1)'
-                    },
-                    valueLabel: {
-                        display: true,
-                        formatter: (value) => `${value.toFixed(3)} [lbf]`
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: isRealTime ? 0 : 1000
                     },
                     plugins: {
-                        datalabels: {
-                            display: false
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                filter: function(legendItem, data) {
+                                    return legendItem.text !== undefined;
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label.startsWith('Perno')) {
+                                        return `${context.dataset.label}: ${context.raw} KLBF`;
+                                    }
+                                    return context.dataset.label;
+                                }
+                            }
                         }
                     },
-                    gauge: {
-                        minValue: 0,
-                        maxValue: 160,
-                        zones: [
-                            { from: 0, to: 90, color: '#ff0000' },
-                            { from: 90, to: 115, color: '#ffff00' },
-                            { from: 115, to: 175, color: '#00ff00' }
-                        ]
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tensión (KLBF)'
+                            },
+                            min: 0,
+                            max: 200,
+                            suggestedMin: 0,
+                            suggestedMax: 200
+                        }
                     }
                 }
             });
         }
 
-        // Simulación de un valor inicial
-        const initialValue = 144.939;
-        createGauge(initialValue);
+        function toggleTable() {
+            const tableDiv = document.getElementById('csv-table');
+            const toggleBtn = document.getElementById('toggleTableBtn');
+            tableVisible = !tableVisible;
+            
+            if (tableVisible) {
+                tableDiv.classList.remove('hidden');
+                toggleBtn.textContent = 'Ocultar Tabla';
+            } else {
+                tableDiv.classList.add('hidden');
+                toggleBtn.textContent = 'Mostrar Tabla';
+            }
+        }
+
+        function fetchData() {
+            const fechaInicio = document.getElementById('fecha_inicio').value;
+            const fechaFin = document.getElementById('fecha_fin').value;
+            
+            let tableUrl = '/data';
+            let chartUrl = '/data?format=json';
+            
+            if (fechaInicio && fechaFin) {
+                tableUrl += `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+                chartUrl += `&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+            }
+            
+            fetch(tableUrl)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('csv-table').innerHTML = data;
+                });
+                
+            fetch(chartUrl)
+                .then(response => response.json())
+                .then(data => {
+                    createChart(data.fechas, {
+                        perno_1: data.perno_1,
+                        perno_2: data.perno_2,
+                        perno_3: data.perno_3,
+                        perno_4: data.perno_4,
+                        perno_5: data.perno_5
+                    });
+                    updateChartVisibility();
+                });
+        }
+
+        function autoFetch() {
+            if (!isRealTime && 
+                !document.getElementById('fecha_inicio').value && 
+                !document.getElementById('fecha_fin').value) {
+                fetchData();
+            }
+        }
+        
+        setInterval(autoFetch, 5000);
+        fetchData(); // Initial fetch
+
+        function updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax) {
+            zonas = {
+                trabajo: {
+                    min: trabajoMin,
+                    max: trabajoMax,
+                    color: 'rgba(0, 255, 0, 0.1)'
+                },
+                observacion: {
+                    min: observacionMin,
+                    max: observacionMax,
+                    color: 'rgba(255, 255, 0, 0.1)'
+                },
+                critica: {
+                    min: 0,
+                    max: criticaMax,
+                    color: 'rgba(255, 0, 0, 0.2)'
+                }
+            };
+            fetchData();
+        }
+
+        function updateRangos() {
+            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
+            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
+            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
+            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
+            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
+            
+            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
+        }
+
+        function toggleZonas() {
+            const zonasContainer = document.getElementById('zonasContainer');
+            const zonasBtn = document.getElementById('zonasBtn');
+            
+            if (zonasContainer.classList.contains('hidden')) {
+                zonasContainer.classList.remove('hidden');
+                zonasBtn.classList.add('active');
+            } else {
+                zonasContainer.classList.add('hidden');
+                zonasBtn.classList.remove('active');
+            }
+        }
+
+        let zonasVisible = false;
+
+        function aplicarZonas() {
+            zonasVisible = !zonasVisible;
+            const btnText = document.getElementById('zonasButtonText');
+            const aplicarBtn = document.getElementById('aplicarZonasBtn');
+            
+            if (zonasVisible) {
+                btnText.textContent = 'Ocultar Zonas';
+                aplicarBtn.classList.add('active');
+            } else {
+                btnText.textContent = 'Mostrar Zonas';
+                aplicarBtn.classList.remove('active');
+            }
+
+            // Actualizar los rangos y aplicar visibilidad
+            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
+            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
+            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
+            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
+            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
+            
+            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
+        }
+
+        function toggleAllPernos() {
+            const selectAll = document.getElementById('selectAll');
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                const pernoNum = parseInt(checkbox.dataset.perno);
+                if (selectAll.checked) {
+                    selectedPernos.add(pernoNum);
+                } else {
+                    selectedPernos.delete(pernoNum);
+                }
+            });
+            
+            updateChartVisibility();
+        }
+
+        function togglePerno(pernoNum) {
+            const checkbox = document.querySelector(`.perno-checkbox[data-perno="${pernoNum}"]`);
+            if (checkbox.checked) {
+                selectedPernos.add(pernoNum);
+            } else {
+                selectedPernos.delete(pernoNum);
+                document.getElementById('selectAll').checked = false;
+            }
+            updateChartVisibility();
+        }
+
+        function updateChartVisibility() {
+            if (!chart) return;
+            
+            // Actualizar visibilidad de cada perno
+            for (let i = 0; i < 5; i++) {
+                chart.data.datasets[i].hidden = !selectedPernos.has(i + 1);
+            }
+            chart.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    togglePerno(parseInt(this.dataset.perno));
+                });
+            });
+        });
     </script>
 </body>
 </html>
