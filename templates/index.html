@@ -200,9 +200,21 @@
         const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
         let lastTimestamp = null;
         let zonas = {
-            trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
-            observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
-            critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
+            trabajo: {
+                min: 115,
+                max: 175,
+                color: 'rgba(0, 255, 0, 0.5)'
+            },
+            observacion: {
+                min: 90,
+                max: 115,
+                color: 'rgba(255, 255, 0, 0.5)'
+            },
+            critica: {
+                min: 0,
+                max: 90,
+                color: 'rgba(255, 0, 0, 0.5)'
+            }
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let zonasVisible = false;
@@ -378,9 +390,9 @@
                 zonasDatasets.push({
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
-                    borderColor: 'rgba(0, 255, 0, 0.5)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                    fill: '+1',
+                    borderColor: 'rgba(0, 255, 0, 0.8)',
+                    backgroundColor: 'rgba(0, 255, 0, 0.3)',
+                    fill: 1,
                     pointRadius: 0,
                     z: 1
                 });
@@ -388,8 +400,8 @@
                 zonasDatasets.push({
                     label: false,
                     data: Array(fechas.length).fill(zonas.trabajo.min),
-                    borderColor: 'rgba(0, 255, 0, 0.5)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                    borderColor: 'rgba(0, 255, 0, 0.8)',
+                    backgroundColor: 'rgba(0, 255, 0, 0.3)',
                     fill: false,
                     pointRadius: 0,
                     z: 1
@@ -399,9 +411,9 @@
                 zonasDatasets.push({
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
-                    borderColor: 'rgba(255, 255, 0, 0.5)',
-                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
-                    fill: '+1',
+                    borderColor: 'rgba(255, 255, 0, 0.8)',
+                    backgroundColor: 'rgba(255, 255, 0, 0.3)',
+                    fill: 1,
                     pointRadius: 0,
                     z: 2
                 });
@@ -409,8 +421,8 @@
                 zonasDatasets.push({
                     label: false,
                     data: Array(fechas.length).fill(zonas.observacion.min),
-                    borderColor: 'rgba(255, 255, 0, 0.5)',
-                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                    borderColor: 'rgba(255, 255, 0, 0.8)',
+                    backgroundColor: 'rgba(255, 255, 0, 0.3)',
                     fill: false,
                     pointRadius: 0,
                     z: 2
@@ -420,20 +432,9 @@
                 zonasDatasets.push({
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
-                    borderColor: 'rgba(255, 0, 0, 0.5)',
-                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                    borderColor: 'rgba(255, 0, 0, 0.8)',
+                    backgroundColor: 'rgba(255, 0, 0, 0.3)',
                     fill: true,
-                    pointRadius: 0,
-                    z: 3
-                });
-                
-                // Línea base (0)
-                zonasDatasets.push({
-                    label: false,
-                    data: Array(fechas.length).fill(0),
-                    borderColor: 'rgba(255, 0, 0, 0.5)',
-                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-                    fill: '-1',
                     pointRadius: 0,
                     z: 3
                 });
