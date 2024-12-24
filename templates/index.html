@@ -60,80 +60,6 @@
             opacity: 0.5;
             pointer-events: none;
         }
-        .zonas-container {
-            margin: 20px 0;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        .zonas-container.hidden {
-            display: none;
-            opacity: 0;
-        }
-        .zona-config {
-            margin: 10px 0;
-        }
-        .zona-config input {
-            width: 70px;
-            margin: 0 5px;
-            padding: 3px;
-        }
-        .zona-config label {
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        #zonasBtn {
-            background-color: #607d8b;
-        }
-        #zonasBtn:hover {
-            background-color: #455a64;
-        }
-        #zonasBtn.active {
-            background-color: #37474f;
-        }
-        .zona-actions {
-            margin-top: 20px;
-            text-align: right;
-        }
-        
-        #aplicarZonasBtn {
-            background-color: #2196F3;
-            min-width: 120px;
-        }
-        
-        #aplicarZonasBtn:hover {
-            background-color: #1976D2;
-        }
-        
-        #aplicarZonasBtn.active {
-            background-color: #1565C0;
-        }
-        .pernos-selector {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-        }
-        
-        .checkbox-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-top: 5px;
-        }
-        
-        .checkbox-group label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-        }
-        
-        .checkbox-group input[type="checkbox"] {
-            margin: 0;
-            cursor: pointer;
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -141,49 +67,7 @@
     <h1>Datos de Tensión</h1>
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
-        <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
-        <div class="pernos-selector">
-            <label>Seleccionar Pernos:</label>
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="selectAll" checked onchange="toggleAllPernos()"> Todos</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="1" checked> Perno 1</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="2" checked> Perno 2</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="3" checked> Perno 3</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="4" checked> Perno 4</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="5" checked> Perno 5</label>
-            </div>
-        </div>
-        <div id="filterControls" style="display: inline-block;">
-            <label>Desde: </label>
-            <input type="datetime-local" id="fecha_inicio">
-            <label>Hasta: </label>
-            <input type="datetime-local" id="fecha_fin">
-            <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
-        </div>
         <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
-    </div>
-    
-    <div class="zonas-container hidden" id="zonasContainer">
-        <h3>Configuración de Zonas de Operación</h3>
-        <div class="zona-config">
-            <label>Zona de Trabajo Normal:</label>
-            <input type="number" id="trabajoMin" value="115"> -
-            <input type="number" id="trabajoMax" value="175"> KLBF
-        </div>
-        <div class="zona-config">
-            <label>Zona de Observación:</label>
-            <input type="number" id="observacionMin" value="90"> -
-            <input type="number" id="observacionMax" value="115"> KLBF
-        </div>
-        <div class="zona-config">
-            <label>Zona Crítica:</label>
-            0 - <input type="number" id="criticaMax" value="90"> KLBF
-        </div>
-        <div class="zona-actions">
-            <button class="button" id="aplicarZonasBtn" onclick="aplicarZonas()">
-                <span id="zonasButtonText">Mostrar Zonas</span>
-            </button>
-        </div>
     </div>
     
     <div class="chart-container">
@@ -197,27 +81,27 @@
         let tableVisible = false;
         let isRealTime = false;
         let realTimeInterval = null;
-        const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
+        const MAX_POINTS = 50;
         let lastTimestamp = null;
-        let zonas = {
+        let zonasVisible = true;
+
+        const zonas = {
             trabajo: {
                 min: 115,
                 max: 175,
-                color: 'rgba(0, 255, 0, 0.5)'
+                color: 'rgba(0, 255, 0, 0.1)'
             },
             observacion: {
                 min: 90,
                 max: 115,
-                color: 'rgba(255, 255, 0, 0.5)'
+                color: 'rgba(255, 255, 0, 0.1)'
             },
             critica: {
                 min: 0,
                 max: 90,
-                color: 'rgba(255, 0, 0, 0.5)'
+                color: 'rgba(255, 0, 0, 0.1)'
             }
         };
-        let selectedPernos = new Set([1, 2, 3, 4, 5]);
-        let zonasVisible = false;
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -331,7 +215,7 @@
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
                     borderColor: 'rgba(255, 0, 0, 0)',
-                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                    backgroundColor: zonas.critica.color,
                     fill: true,
                     pointRadius: 0,
                     z: 1
@@ -342,10 +226,10 @@
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
                     borderColor: 'rgba(255, 255, 0, 0)',
-                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                    backgroundColor: zonas.observacion.color,
                     fill: {
                         target: 'origin',
-                        above: 'rgba(255, 255, 0, 0.1)',
+                        above: zonas.observacion.color,
                         below: 'transparent'
                     },
                     pointRadius: 0,
@@ -357,10 +241,10 @@
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
                     borderColor: 'rgba(0, 255, 0, 0)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                    backgroundColor: zonas.trabajo.color,
                     fill: {
                         target: 'origin',
-                        above: 'rgba(0, 255, 0, 0.1)',
+                        above: zonas.trabajo.color,
                         below: 'transparent'
                     },
                     pointRadius: 0,
@@ -532,122 +416,6 @@
         setInterval(autoFetch, 5000);
         fetchData(); // Initial fetch
 
-        function updateZonas() {
-            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
-            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
-            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
-            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
-            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
-            
-            zonas = {
-                trabajo: {
-                    min: trabajoMin,
-                    max: trabajoMax,
-                    color: 'rgba(0, 255, 0, 0.2)'
-                },
-                observacion: {
-                    min: observacionMin,
-                    max: observacionMax,
-                    color: 'rgba(255, 255, 0, 0.2)'
-                },
-                critica: {
-                    min: 0,
-                    max: criticaMax,
-                    color: 'rgba(255, 0, 0, 0.2)'
-                }
-            };
-            
-            if (zonasVisible && chart) {
-                const currentData = {
-                    fechas: chart.data.labels,
-                    perno_1: chart.data.datasets.find(d => d.label === 'Perno 1')?.data || [],
-                    perno_2: chart.data.datasets.find(d => d.label === 'Perno 2')?.data || [],
-                    perno_3: chart.data.datasets.find(d => d.label === 'Perno 3')?.data || [],
-                    perno_4: chart.data.datasets.find(d => d.label === 'Perno 4')?.data || [],
-                    perno_5: chart.data.datasets.find(d => d.label === 'Perno 5')?.data || []
-                };
-                createChart(currentData.fechas, currentData);
-            }
-        }
-
-        function updateRangos() {
-            const trabajoMin = parseFloat(document.getElementById('trabajoMin').value);
-            const trabajoMax = parseFloat(document.getElementById('trabajoMax').value);
-            const observacionMin = parseFloat(document.getElementById('observacionMin').value);
-            const observacionMax = parseFloat(document.getElementById('observacionMax').value);
-            const criticaMax = parseFloat(document.getElementById('criticaMax').value);
-            
-            updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
-        }
-
-        function toggleZonas() {
-            const zonasContainer = document.getElementById('zonasContainer');
-            const zonasBtn = document.getElementById('zonasBtn');
-            
-            if (zonasContainer.classList.contains('hidden')) {
-                zonasContainer.classList.remove('hidden');
-                zonasBtn.classList.add('active');
-            } else {
-                zonasContainer.classList.add('hidden');
-                zonasBtn.classList.remove('active');
-            }
-        }
-
-        function aplicarZonas() {
-            zonasVisible = !zonasVisible;
-            const btnText = document.getElementById('zonasButtonText');
-            const aplicarBtn = document.getElementById('aplicarZonasBtn');
-            
-            if (zonasVisible) {
-                btnText.textContent = 'Ocultar Zonas';
-                aplicarBtn.classList.add('active');
-            } else {
-                btnText.textContent = 'Mostrar Zonas';
-                aplicarBtn.classList.remove('active');
-            }
-            
-            // Obtener los datos actuales y volver a crear el gráfico
-            if (chart) {
-                const currentData = {
-                    fechas: chart.data.labels,
-                    perno_1: chart.data.datasets.find(d => d.label === 'Perno 1')?.data || [],
-                    perno_2: chart.data.datasets.find(d => d.label === 'Perno 2')?.data || [],
-                    perno_3: chart.data.datasets.find(d => d.label === 'Perno 3')?.data || [],
-                    perno_4: chart.data.datasets.find(d => d.label === 'Perno 4')?.data || [],
-                    perno_5: chart.data.datasets.find(d => d.label === 'Perno 5')?.data || []
-                };
-                createChart(currentData.fechas, currentData);
-            }
-        }
-
-        function toggleAllPernos() {
-            const selectAll = document.getElementById('selectAll');
-            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
-            
-            pernoCheckboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-                const pernoNum = parseInt(checkbox.dataset.perno);
-                if (selectAll.checked) {
-                    selectedPernos.add(pernoNum);
-                } else {
-                    selectedPernos.delete(pernoNum);
-                }
-            });
-            
-            updateChartVisibility();
-        }
-
-        function togglePerno(pernoNum) {
-            const checkbox = document.querySelector(`.perno-checkbox[data-perno="${pernoNum}"]`);
-            if (checkbox.checked) {
-                selectedPernos.add(pernoNum);
-            } else {
-                selectedPernos.delete(pernoNum);
-                document.getElementById('selectAll').checked = false;
-            }
-            updateChartVisibility();
-        }
-
         function updateChartVisibility() {
             if (!chart) return;
             
@@ -664,13 +432,6 @@
                 checkbox.addEventListener('change', function() {
                     togglePerno(parseInt(this.dataset.perno));
                 });
-            });
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const rangeInputs = document.querySelectorAll('.zona-config input');
-            rangeInputs.forEach(input => {
-                input.addEventListener('change', updateZonas);
             });
         });
     </script>
