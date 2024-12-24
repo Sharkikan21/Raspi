@@ -319,6 +319,7 @@
                     fill: false,
                     borderWidth: 2,
                     pointRadius: 2,
+                    hidden: !selectedPernos.has(1),
                     z: 10
                 },
                 {
@@ -329,6 +330,7 @@
                     fill: false,
                     borderWidth: 2,
                     pointRadius: 2,
+                    hidden: !selectedPernos.has(2),
                     z: 10
                 },
                 {
@@ -339,6 +341,7 @@
                     fill: false,
                     borderWidth: 2,
                     pointRadius: 2,
+                    hidden: !selectedPernos.has(3),
                     z: 10
                 },
                 {
@@ -349,6 +352,7 @@
                     fill: false,
                     borderWidth: 2,
                     pointRadius: 2,
+                    hidden: !selectedPernos.has(4),
                     z: 10
                 },
                 {
@@ -359,63 +363,55 @@
                     fill: false,
                     borderWidth: 2,
                     pointRadius: 2,
+                    hidden: !selectedPernos.has(5),
                     z: 10
                 }
             ];
 
-            // Agregar datasets de zonas
-            const zonaDatasets = [
-                {
+            // Crear datasets para las zonas
+            const zonasDatasets = [];
+            
+            // Solo agregar las zonas si están visibles
+            if (zonasVisible) {
+                // Zona de trabajo normal
+                zonasDatasets.push({
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
-                    borderColor: 'transparent',
+                    borderColor: 'rgba(0, 255, 0, 0.5)',
                     backgroundColor: zonas.trabajo.color,
-                    fill: '+1',
+                    fill: true,
                     pointRadius: 0,
-                    z: 1,
-                    hidden: !zonasVisible
-                },
-                {
-                    data: Array(fechas.length).fill(zonas.trabajo.min),
-                    borderColor: 'transparent',
-                    fill: false,
-                    pointRadius: 0,
-                    hidden: !zonasVisible
-                },
-                {
+                    z: 1
+                });
+                
+                // Zona de observación
+                zonasDatasets.push({
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
-                    borderColor: 'transparent',
+                    borderColor: 'rgba(255, 255, 0, 0.5)',
                     backgroundColor: zonas.observacion.color,
-                    fill: '+1',
+                    fill: true,
                     pointRadius: 0,
-                    z: 2,
-                    hidden: !zonasVisible
-                },
-                {
-                    data: Array(fechas.length).fill(zonas.observacion.min),
-                    borderColor: 'transparent',
-                    fill: false,
-                    pointRadius: 0,
-                    hidden: !zonasVisible
-                },
-                {
+                    z: 2
+                });
+                
+                // Zona crítica
+                zonasDatasets.push({
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
-                    borderColor: 'transparent',
+                    borderColor: 'rgba(255, 0, 0, 0.5)',
                     backgroundColor: zonas.critica.color,
-                    fill: '+1',
+                    fill: true,
                     pointRadius: 0,
-                    z: 3,
-                    hidden: !zonasVisible
-                }
-            ];
+                    z: 3
+                });
+            }
 
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [...pernoDatasets, ...zonaDatasets]
+                    datasets: [...zonasDatasets, ...pernoDatasets] // Zonas primero para que estén detrás
                 },
                 options: {
                     responsive: true,
@@ -426,11 +422,6 @@
                     plugins: {
                         legend: {
                             position: 'top',
-                            labels: {
-                                filter: function(legendItem, data) {
-                                    return legendItem.text !== undefined;
-                                }
-                            }
                         },
                         tooltip: {
                             callbacks: {
