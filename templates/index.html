@@ -331,7 +331,7 @@
                     label: 'Zona Crítica',
                     data: Array(fechas.length).fill(zonas.critica.max),
                     borderColor: 'rgba(255, 0, 0, 0)',
-                    backgroundColor: zonas.critica.color,
+                    backgroundColor: 'rgba(255, 0, 0, 0.1)',
                     fill: true,
                     pointRadius: 0,
                     z: 1
@@ -342,10 +342,10 @@
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(zonas.observacion.max),
                     borderColor: 'rgba(255, 255, 0, 0)',
-                    backgroundColor: zonas.observacion.color,
+                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
                     fill: {
                         target: 'origin',
-                        above: zonas.observacion.color,
+                        above: 'rgba(255, 255, 0, 0.1)',
                         below: 'transparent'
                     },
                     pointRadius: 0,
@@ -357,10 +357,10 @@
                     label: 'Zona de Trabajo Normal',
                     data: Array(fechas.length).fill(zonas.trabajo.max),
                     borderColor: 'rgba(0, 255, 0, 0)',
-                    backgroundColor: zonas.trabajo.color,
+                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
                     fill: {
                         target: 'origin',
-                        above: zonas.trabajo.color,
+                        above: 'rgba(0, 255, 0, 0.1)',
                         below: 'transparent'
                     },
                     pointRadius: 0,
