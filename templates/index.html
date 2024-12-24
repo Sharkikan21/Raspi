@@ -381,40 +381,47 @@
                 }
             ];
 
-            // Crear datasets para las zonas
-            const zonasDatasets = [];
-            
-            // Solo agregar las zonas si están visibles
+            const datasets = [...pernoDatasets];
+
+            // Agregar zonas si están visibles
             if (zonasVisible) {
-                // Zona crítica (0-90)
-                zonasDatasets.push({
-                    label: 'Zona Crítica',
-                    data: Array(fechas.length).fill(90),
-                    borderColor: 'rgba(255, 0, 0, 1)',
-                    backgroundColor: 'rgba(255, 0, 0, 0.2)',
-                    fill: true,
+                // Zona de trabajo normal (115-175)
+                datasets.unshift({
+                    label: 'Zona de Trabajo Normal',
+                    data: Array(fechas.length).fill(175),
+                    borderColor: 'rgba(0, 255, 0, 0)',
+                    backgroundColor: 'rgba(0, 255, 0, 0.2)',
+                    fill: {
+                        target: {
+                            value: 115
+                        }
+                    },
                     pointRadius: 0,
                     z: 1
                 });
 
                 // Zona de observación (90-115)
-                zonasDatasets.push({
+                datasets.unshift({
                     label: 'Zona de Observación',
                     data: Array(fechas.length).fill(115),
-                    borderColor: 'rgba(255, 255, 0, 1)',
+                    borderColor: 'rgba(255, 255, 0, 0)',
                     backgroundColor: 'rgba(255, 255, 0, 0.2)',
-                    fill: '-1', // Rellena hasta la zona anterior
+                    fill: {
+                        target: {
+                            value: 90
+                        }
+                    },
                     pointRadius: 0,
                     z: 2
                 });
 
-                // Zona de trabajo normal (115-175)
-                zonasDatasets.push({
-                    label: 'Zona de Trabajo Normal',
-                    data: Array(fechas.length).fill(175),
-                    borderColor: 'rgba(0, 255, 0, 1)',
-                    backgroundColor: 'rgba(0, 255, 0, 0.2)',
-                    fill: '-1', // Rellena hasta la zona anterior
+                // Zona crítica (0-90)
+                datasets.unshift({
+                    label: 'Zona Crítica',
+                    data: Array(fechas.length).fill(90),
+                    borderColor: 'rgba(255, 0, 0, 0)',
+                    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                    fill: true,
                     pointRadius: 0,
                     z: 3
                 });
@@ -424,7 +431,7 @@
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [...zonasDatasets, ...pernoDatasets]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -434,12 +441,7 @@
                     },
                     plugins: {
                         legend: {
-                            position: 'top',
-                            labels: {
-                                filter: function(item) {
-                                    return item.text !== undefined && item.text !== '';
-                                }
-                            }
+                            position: 'top'
                         }
                     },
                     scales: {
@@ -585,11 +587,27 @@
                 aplicarBtn.classList.remove('active');
             }
             
-            // Forzar la actualización del gráfico
-            if (chart) {
-                chart.destroy();
+            // Obtener los datos actuales y volver a crear el gráfico
+            const currentData = chart ? {
+                fechas: chart.data.labels,
+                perno_1: chart.data.datasets.find(d => d.label === 'Perno 1')?.data || [],
+                perno_2: chart.data.datasets.find(d => d.label === 'Perno 2')?.data || [],
+                perno_3: chart.data.datasets.find(d => d.label === 'Perno 3')?.data || [],
+                perno_4: chart.data.datasets.find(d => d.label === 'Perno 4')?.data || [],
+                perno_5: chart.data.datasets.find(d => d.label === 'Perno 5')?.data || []
+            } : null;
+
+            if (currentData) {
+                createChart(currentData.fechas, {
+                    perno_1: currentData.perno_1,
+                    perno_2: currentData.perno_2,
+                    perno_3: currentData.perno_3,
+                    perno_4: currentData.perno_4,
+                    perno_5: currentData.perno_5
+                });
+            } else {
+                fetchData();
             }
-            fetchData();
         }
 
         function toggleAllPernos() {
