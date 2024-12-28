@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, jsonify, session, url_for
+from flask import Flask, redirect, render_template, request, jsonify, session, url_for, flash
 import pandas as pd
 import psycopg2
 from datetime import datetime
@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'  # Necesario para manejar sesiones
+app.secret_key = 'tu_clave_secreta_aqui'  # Mejor si viene de variables de entorno
 
 DB_CONFIG = {
     'host': 'raspi-db.cti0wcg6q365.us-east-1.rds.amazonaws.com',
@@ -128,6 +128,65 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/admin/create_user', methods=['GET', 'POST'])
+@login_required
+def create_user():
+    # Verificar si el usuario es admin
+    if not session.get('role') == 'admin':
+        flash('No tienes permisos para acceder a esta página', 'error')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        raspberry_id = request.form.get('raspberry_id')
+
+        # Validaciones básicas
+        if not username or not password or not raspberry_id:
+            flash('Todos los campos son requeridos', 'error')
+            return render_template('create_user.html')
+
+        # Verificar si el usuario ya existe
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                if cursor.fetchone():
+                    flash('El nombre de usuario ya existe', 'error')
+                    return render_template('create_user.html')
+
+                # Verificar si el raspberry_id existe y está disponible
+                cursor.execute("SELECT id FROM user_raspberry WHERE raspberry_id = %s", (raspberry_id,))
+                if cursor.fetchone():
+                    flash('Este Raspberry Pi ya está asignado a otro usuario', 'error')
+                    return render_template('create_user.html')
+
+                # Crear usuario
+                hashed_password = generate_password_hash(password)
+                cursor.execute(
+                    "INSERT INTO users (username, password, role_id) VALUES (%s, %s, %s) RETURNING id",
+                    (username, hashed_password, 2)
+                )
+                user_id = cursor.fetchone()[0]
+
+                # Asignar Raspberry
+                cursor.execute(
+                    "INSERT INTO user_raspberry (user_id, raspberry_id) VALUES (%s, %s)",
+                    (user_id, raspberry_id)
+                )
+                conn.commit()
+                flash('Usuario creado exitosamente', 'success')
+                return redirect(url_for('admin_dashboard'))
+
+        except Exception as e:
+            conn.rollback()
+            flash(f'Error al crear el usuario: {str(e)}', 'error')
+            return render_template('create_user.html')
+        finally:
+            conn.close()
+
+    return render_template('create_user.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

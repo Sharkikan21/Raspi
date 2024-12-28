@@ -140,9 +140,7 @@
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>Forymec</h1>
-        <button onclick="window.location.href='{{ url_for('logout') }}'" class="button" style="background-color: #f44336;">
-            Cerrar Sesión
-        </button>
+        <button onclick="window.location.href='{{ url_for('logout') }}'" class="button" style="background-color: #f44336;">Cerrar Sesión</button>
     </div>
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
@@ -551,7 +549,7 @@
                     color: 'rgba(255, 0, 0, 0.2)'
                 }
             };
-        fetchData();
+            fetchData();
         }
 
         function updateRangos() {
