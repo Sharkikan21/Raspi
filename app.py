@@ -3,7 +3,10 @@ import pandas as pd
 import psycopg2
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+
 app = Flask(__name__)
+app.secret_key = 'tu_clave_secreta_aqui'  # Necesario para manejar sesiones
 
 DB_CONFIG = {
     'host': 'raspi-db.cti0wcg6q365.us-east-1.rds.amazonaws.com',
@@ -16,11 +19,26 @@ DB_CONFIG = {
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
+# Decorator para proteger rutas
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
     return render_template('index.html')
 
 @app.route('/data')
+@login_required
 def get_db_data():
     try:
         fecha_inicio = request.args.get('fecha_inicio')
@@ -69,8 +87,6 @@ def get_db_data():
         print(f"Database error: {e}")
         return f"<p>Error: {str(e)}</p>"
 
-
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -78,14 +94,12 @@ def login():
         password = request.form.get('password')
 
         if not username or not password:
-            return 'Faltan credenciales', 400
+            return render_template('login.html', error='Faltan credenciales')
 
         try:
-            # Conectar a la base de datos
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            # Consultar el usuario en la base de datos
             cursor.execute("""
                 SELECT u.id, u.password, r.name AS role 
                 FROM users u
@@ -94,24 +108,26 @@ def login():
             """, (username,))
             user = cursor.fetchone()
 
-            # Validar usuario y contraseña
             if user and check_password_hash(user[1], password):
                 session['user_id'] = user[0]
                 session['role'] = user[2]
                 return redirect(url_for('dashboard'))
             else:
-                return 'Credenciales incorrectas', 401
+                return render_template('login.html', error='Credenciales incorrectas')
 
         except Exception as e:
-            return f'Error: {e}', 500
+            return render_template('login.html', error=f'Error: {str(e)}')
 
         finally:
             cursor.close()
             conn.close()
+
     return render_template('login.html')
 
-
-
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
