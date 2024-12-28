@@ -47,27 +47,37 @@ def get_db_data():
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
 
-        query = 'SELECT * FROM public.tension'
-        params = []
+        # Base query según el rol del usuario
+        if session['role'] == 'admin':
+            base_query = 'SELECT * FROM public.tension'
+            params = []
+        else:
+            base_query = """
+                SELECT t.* FROM public.tension t
+                JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
+                WHERE ur.user_id = %s
+            """
+            params = [session['user_id']]
 
+        # Agregar condiciones adicionales
         if after_timestamp:
-            query += ' WHERE fecha > %s'
+            base_query += ' AND fecha > %s' if 'WHERE' in base_query else ' WHERE fecha > %s'
             params.append(after_timestamp)
         elif fecha_inicio and fecha_fin:
-            query += ' WHERE fecha BETWEEN %s AND %s'
+            base_query += ' AND fecha BETWEEN %s AND %s' if 'WHERE' in base_query else ' WHERE fecha BETWEEN %s AND %s'
             fecha_inicio = datetime.fromisoformat(fecha_inicio).strftime('%Y-%m-%d %H:%M:%S')
             fecha_fin = datetime.fromisoformat(fecha_fin).strftime('%Y-%m-%d %H:%M:%S')
             params.extend([fecha_inicio, fecha_fin])
 
-        query += ' ORDER BY fecha DESC'
+        base_query += ' ORDER BY fecha DESC'
 
         if limit:
-            query += f' LIMIT {int(limit)}'
+            base_query += f' LIMIT {int(limit)}'
         elif after_timestamp:
-            query += ' LIMIT 50'
+            base_query += ' LIMIT 50'
 
         conn = get_db_connection()
-        df = pd.read_sql_query(query, conn, params=params)
+        df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
         if format_type == 'json':
