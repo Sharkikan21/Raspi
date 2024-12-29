@@ -52,6 +52,7 @@ def get_db_data():
             base_query = 'SELECT * FROM public.tension'
             params = []
         else:
+            # Query modificada para mostrar solo datos de las raspberry asociadas al usuario
             base_query = """
                 SELECT t.* FROM public.tension t
                 JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id

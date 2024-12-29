@@ -531,23 +531,11 @@
         setInterval(autoFetch, 5000);
         fetchData(); // Initial fetch
 
-        function updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax) {
+        function updateZonas() {
             zonas = {
-                trabajo: {
-                    min: trabajoMin,
-                    max: trabajoMax,
-                    color: 'rgba(0, 255, 0, 0.1)'
-                },
-                observacion: {
-                    min: observacionMin,
-                    max: observacionMax,
-                    color: 'rgba(255, 255, 0, 0.1)'
-                },
-                critica: {
-                    min: 0,
-                    max: criticaMax,
-                    color: 'rgba(255, 0, 0, 0.2)'
-                }
+                trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
+                observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
+                critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
             };
             fetchData();
         }
