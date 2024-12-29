@@ -134,6 +134,34 @@
             margin: 0;
             cursor: pointer;
         }
+        .raspberry-selector {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .raspberry-selector h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin: 0;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -189,6 +217,15 @@
         </div>
     </div>
     
+    {% if session['role'] == 'admin' %}
+    <div class="raspberry-selector" id="raspberrySelectorContainer">
+        <h3>Seleccionar Raspberry Pi</h3>
+        <div class="checkbox-group" id="raspberryCheckboxes">
+            <!-- Los checkboxes se generarán dinámicamente -->
+        </div>
+    </div>
+    {% endif %}
+    
     <div class="chart-container">
         <canvas id="tensionChart"></canvas>
     </div>
@@ -208,6 +245,7 @@
             critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
+        let selectedRaspberries = new Set();
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -500,6 +538,12 @@
                 chartUrl += `&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
             }
             
+            if (selectedRaspberries.size > 0) {
+                const raspParam = Array.from(selectedRaspberries).join(',');
+                tableUrl += (tableUrl.includes('?') ? '&' : '?') + `raspberries[]=${raspParam}`;
+                chartUrl += (chartUrl.includes('?') ? '&' : '?') + `raspberries[]=${raspParam}`;
+            }
+            
             fetch(tableUrl)
                 .then(response => response.text())
                 .then(data => {
@@ -634,6 +678,70 @@
                 });
             });
         });
+
+        function loadRaspberries() {
+            fetch('/get_raspberries')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.raspberries) {
+                        const container = document.getElementById('raspberryCheckboxes');
+                        container.innerHTML = `
+                            <label>
+                                <input type="checkbox" id="selectAllRaspberries" checked>
+                                Todas
+                            </label>
+                        `;
+                        
+                        data.raspberries.forEach(raspberry => {
+                            selectedRaspberries.add(raspberry);
+                            container.innerHTML += `
+                                <label>
+                                    <input type="checkbox" class="raspberry-checkbox" 
+                                           value="${raspberry}" checked>
+                                    Raspberry ${raspberry}
+                                </label>
+                            `;
+                        });
+                        
+                        // Eventos para los checkboxes
+                        setupRaspberryCheckboxes();
+                    }
+                });
+        }
+        
+        function setupRaspberryCheckboxes() {
+            const selectAll = document.getElementById('selectAllRaspberries');
+            const checkboxes = document.querySelectorAll('.raspberry-checkbox');
+            
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                    if (this.checked) {
+                        selectedRaspberries.add(parseInt(cb.value));
+                    } else {
+                        selectedRaspberries.delete(parseInt(cb.value));
+                    }
+                });
+                fetchData();
+            });
+            
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    if (this.checked) {
+                        selectedRaspberries.add(parseInt(this.value));
+                    } else {
+                        selectedRaspberries.delete(parseInt(this.value));
+                        selectAll.checked = false;
+                    }
+                    fetchData();
+                });
+            });
+        }
+        
+        // Cargar las Raspberry Pi disponibles al iniciar la página si es admin
+        {% if session['role'] == 'admin' %}
+        document.addEventListener('DOMContentLoaded', loadRaspberries);
+        {% endif %}
     </script>
 </body>
 </html>

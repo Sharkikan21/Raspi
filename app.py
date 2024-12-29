@@ -46,13 +46,16 @@ def get_db_data():
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
+        selected_raspberries = request.args.getlist('raspberries[]')
 
-        # Base query según el rol del usuario
         if session['role'] == 'admin':
-            base_query = 'SELECT * FROM public.tension'
-            params = []
+            if selected_raspberries:
+                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = ANY(%s)'
+                params = [selected_raspberries]
+            else:
+                base_query = 'SELECT * FROM public.tension'
+                params = []
         else:
-            # Query modificada para mostrar solo datos de las raspberry asociadas al usuario
             base_query = """
                 SELECT t.* FROM public.tension t
                 JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
@@ -198,6 +201,24 @@ def create_user():
             conn.close()
 
     return render_template('create_user.html')
+
+@app.route('/get_raspberries')
+@login_required
+def get_raspberries():
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+        
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT raspberry_id FROM tension ORDER BY raspberry_id")
+        raspberries = [row[0] for row in cursor.fetchall()]
+        return jsonify({'raspberries': raspberries})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)
