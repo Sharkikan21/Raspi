@@ -1,6 +1,121 @@
-<div class="raspberry-selector" id="raspberrySelectorContainer" style="display: none;">
-    <h3>Seleccionar Raspberry Pi</h3>
-    <div class="checkbox-group" id="raspberryCheckboxes">
-        <!-- Los checkboxes se generarán dinámicamente -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleccionar Raspberry - Forymec</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .raspberry-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .raspberry-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-align: center;
+        }
+
+        .raspberry-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .button.logout {
+            background-color: #f44336;
+        }
+
+        .button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Seleccionar Raspberry Pi</h1>
+            <button onclick="window.location.href='{{ url_for('logout') }}'" class="button logout">
+                Cerrar Sesión
+            </button>
+        </div>
+        <div class="raspberry-grid" id="raspberryGrid">
+            <!-- Los Raspberry Pi se cargarán dinámicamente aquí -->
+        </div>
     </div>
-</div> 
+
+    <script>
+        function loadRaspberries() {
+            fetch('/get_raspberries')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.raspberries) {
+                        const grid = document.getElementById('raspberryGrid');
+                        data.raspberries.forEach(raspberry => {
+                            const card = document.createElement('div');
+                            card.className = 'raspberry-card';
+                            card.onclick = () => selectRaspberry(raspberry);
+                            card.innerHTML = `
+                                <h3>Raspberry ${raspberry}</h3>
+                                <p>ID: ${raspberry}</p>
+                            `;
+                            grid.appendChild(card);
+                        });
+                    }
+                });
+        }
+
+        function selectRaspberry(id) {
+            window.location.href = `/dashboard?raspberry_id=${id}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', loadRaspberries);
+    </script>
+</body>
+</html> 

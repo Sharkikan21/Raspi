@@ -35,6 +35,11 @@ def index():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    if session['role'] == 'admin':
+        raspberry_id = request.args.get('raspberry_id')
+        if not raspberry_id:
+            return render_template('raspberry_selector.html')
+        session['selected_raspberry'] = raspberry_id
     return render_template('index.html')
 
 @app.route('/data')
@@ -49,8 +54,11 @@ def get_db_data():
         
         # Base query según el rol del usuario
         if session['role'] == 'admin':
-            base_query = 'SELECT * FROM public.tension'
-            params = []
+            if 'selected_raspberry' in session:
+                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
+                params = [session['selected_raspberry']]
+            else:
+                return jsonify({'error': 'No raspberry selected'}), 400
         else:
             base_query = """
                 SELECT t.* FROM public.tension t
