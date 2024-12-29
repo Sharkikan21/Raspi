@@ -168,7 +168,8 @@
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h1>Forymec</h1>
-        <button onclick="window.location.href='{{ url_for('logout') }}'" class="button" style="background-color: #f44336;">Cerrar Sesión</button>
+        <button onclick="window.location.href='{{ url_for('logout') }}';" class="button" style="background-color: #f44336;">Cerrar Sesión</button>
+
     </div>
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
@@ -685,15 +686,9 @@
                 .then(data => {
                     if (data.raspberries) {
                         const container = document.getElementById('raspberryCheckboxes');
-                        container.innerHTML = `
-                            <label>
-                                <input type="checkbox" id="selectAllRaspberries" checked>
-                                Todas
-                            </label>
-                        `;
+                        container.innerHTML = '';
                         
                         data.raspberries.forEach(raspberry => {
-                            selectedRaspberries.add(raspberry);
                             container.innerHTML += `
                                 <label>
                                     <input type="checkbox" class="raspberry-checkbox" 
@@ -703,45 +698,14 @@
                             `;
                         });
                         
-                        // Eventos para los checkboxes
-                        setupRaspberryCheckboxes();
+                        // Configurar eventos para los checkboxes
+                        const checkboxes = document.querySelectorAll('.raspberry-checkbox');
+                        checkboxes.forEach(cb => {
+                            cb.addEventListener('change', fetchData);
+                        });
                     }
                 });
         }
-        
-        function setupRaspberryCheckboxes() {
-            const selectAll = document.getElementById('selectAllRaspberries');
-            const checkboxes = document.querySelectorAll('.raspberry-checkbox');
-            
-            selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => {
-                    cb.checked = this.checked;
-                    if (this.checked) {
-                        selectedRaspberries.add(parseInt(cb.value));
-                    } else {
-                        selectedRaspberries.delete(parseInt(cb.value));
-                    }
-                });
-                fetchData();
-            });
-            
-            checkboxes.forEach(cb => {
-                cb.addEventListener('change', function() {
-                    if (this.checked) {
-                        selectedRaspberries.add(parseInt(this.value));
-                    } else {
-                        selectedRaspberries.delete(parseInt(this.value));
-                        selectAll.checked = false;
-                    }
-                    fetchData();
-                });
-            });
-        }
-        
-        // Cargar las Raspberry Pi disponibles al iniciar la página si es admin
-        {% if session['role'] == 'admin' %}
-        document.addEventListener('DOMContentLoaded', loadRaspberries);
-        {% endif %}
     </script>
 </body>
 </html>

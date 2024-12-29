@@ -46,15 +46,11 @@ def get_db_data():
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
-        selected_raspberries = request.args.getlist('raspberries[]')
-
+        
+        # Base query según el rol del usuario
         if session['role'] == 'admin':
-            if selected_raspberries:
-                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = ANY(%s)'
-                params = [selected_raspberries]
-            else:
-                base_query = 'SELECT * FROM public.tension'
-                params = []
+            base_query = 'SELECT * FROM public.tension'
+            params = []
         else:
             base_query = """
                 SELECT t.* FROM public.tension t

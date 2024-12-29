@@ -1,0 +1,3 @@
+admin password123
+raspi_1 raspi
+raspi_2 raspi2
