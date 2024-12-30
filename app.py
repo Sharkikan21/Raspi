@@ -74,19 +74,29 @@ def get_db_data():
         elif fecha_inicio and fecha_fin:
             base_query += ' AND fecha BETWEEN %s AND %s' if 'WHERE' in base_query else ' WHERE fecha BETWEEN %s AND %s'
             try:
-                fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')
-                fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00')).strftime('%Y-%m-%d %H:%M:%S')
+                # Convertir las fechas a UTC
+                fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
+                fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
+                # Asegurar que la fecha final sea el último momento del día
+                fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
+                
+                params.extend([
+                    fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                    fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
+                ])
             except ValueError as e:
                 print(f"Error parsing dates: {e}")
                 return jsonify({'error': 'Invalid date format'}), 400
-            params.extend([fecha_inicio, fecha_fin])
 
-        base_query += ' ORDER BY fecha DESC'
+        # Ordenar por fecha
+        base_query += ' ORDER BY fecha'  # Cambiado de DESC a ASC para mantener el orden cronológico
 
-        if limit and not fecha_inicio and not fecha_fin:  # Solo aplicar límite si no hay filtro de fechas
-            base_query += f' LIMIT {int(limit)}'
-        elif after_timestamp and not fecha_inicio and not fecha_fin:
-            base_query += ' LIMIT 50'
+        # Solo aplicar límites en tiempo real
+        if not fecha_inicio and not fecha_fin:
+            if limit:
+                base_query += f' LIMIT {int(limit)}'
+            elif after_timestamp:
+                base_query += ' LIMIT 50'
 
         print(f"Query: {base_query}")  # Para debugging
         print(f"Params: {params}")     # Para debugging
