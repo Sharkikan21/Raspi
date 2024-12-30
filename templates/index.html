@@ -258,19 +258,22 @@
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
-            const realTimeBtn = document.getElementById('realTimeBtn');
-            const filterContainer = document.querySelector('.filter-container');
+            const btn = document.getElementById('realTimeBtn');
+            const filterControls = document.getElementById('filterControls');
             
             if (isRealTime) {
-                realTimeBtn.textContent = 'Detener Tiempo Real';
-                realTimeBtn.classList.add('active');
-                filterContainer.classList.add('disabled');
-                startRealTimeUpdates();
+                btn.textContent = 'Detener Tiempo Real';
+                btn.classList.add('active');
+                filterControls.classList.add('disabled');
+                lastTimestamp = null;
+                realTimeInterval = setInterval(fetchRealTimeData, 5000);
             } else {
-                realTimeBtn.textContent = 'Iniciar Tiempo Real';
-                realTimeBtn.classList.remove('active');
-                filterContainer.classList.remove('disabled');
-                stopRealTimeUpdates();
+                btn.textContent = 'Iniciar Tiempo Real';
+                btn.classList.remove('active');
+                filterControls.classList.remove('disabled');
+                if (realTimeInterval) {
+                    clearInterval(realTimeInterval);
+                }
             }
         }
 
@@ -543,14 +546,18 @@
             let chartUrl = '/data?format=json';
             
             if (fechaInicio && fechaFin) {
-                tableUrl += `?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
-                chartUrl += `&fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+                const params = `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+                tableUrl += `?${params}`;
+                chartUrl += `&${params}`;
             }
             
-            if (selectedRaspberries.size > 0) {
-                const raspParam = Array.from(selectedRaspberries).join(',');
-                tableUrl += (tableUrl.includes('?') ? '&' : '?') + `raspberries[]=${raspParam}`;
-                chartUrl += (chartUrl.includes('?') ? '&' : '?') + `raspberries[]=${raspParam}`;
+            // Detener la actualización automática si hay filtros activos
+            if (fechaInicio || fechaFin) {
+                if (realTimeInterval) {
+                    clearInterval(realTimeInterval);
+                    isRealTime = false;
+                    document.getElementById('realTimeBtn').classList.remove('active');
+                }
             }
             
             fetch(tableUrl)
@@ -574,6 +581,7 @@
         }
 
         function autoFetch() {
+            // No actualizar si hay filtros activos o si estamos en tiempo real
             if (!isRealTime && 
                 !document.getElementById('fecha_inicio').value && 
                 !document.getElementById('fecha_fin').value) {

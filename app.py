@@ -51,12 +51,12 @@ def get_db_data():
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
-        
+
         # Base query según el rol del usuario
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
                 base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
-                params = [session['selected_raspberry']]
+                params = [int(session['selected_raspberry'])]
             else:
                 return jsonify({'error': 'No raspberry selected'}), 400
         else:
