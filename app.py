@@ -232,7 +232,12 @@ def get_raspberries():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT raspberry_id FROM tension ORDER BY raspberry_id")
+        cursor.execute("""
+            SELECT DISTINCT raspberry_id 
+            FROM tension 
+            WHERE raspberry_id IS NOT NULL 
+            ORDER BY raspberry_id
+        """)
         raspberries = [row[0] for row in cursor.fetchall()]
         return jsonify({'raspberries': raspberries})
     except Exception as e:
