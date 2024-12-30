@@ -181,18 +181,6 @@
     </div>
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
-        <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
-        <div class="pernos-selector">
-            <label>Seleccionar Pernos:</label>
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="selectAll" checked onchange="toggleAllPernos()"> Todos</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="1" checked> Perno 1</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="2" checked> Perno 2</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="3" checked> Perno 3</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="4" checked> Perno 4</label>
-                <label><input type="checkbox" class="perno-checkbox" data-perno="5" checked> Perno 5</label>
-            </div>
-        </div>
         <div id="filterControls" style="display: inline-block;">
             <label>Desde: </label>
             <input type="datetime-local" id="fecha_inicio">
@@ -203,34 +191,11 @@
         <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
     
-    <div class="zonas-container hidden" id="zonasContainer">
-        <h3>Configuración de Zonas de Operación</h3>
-        <div class="zona-config">
-            <label>Zona de Trabajo Normal:</label>
-            <input type="number" id="trabajoMin" value="115"> -
-            <input type="number" id="trabajoMax" value="175"> KLBF
-        </div>
-        <div class="zona-config">
-            <label>Zona de Observación:</label>
-            <input type="number" id="observacionMin" value="90"> -
-            <input type="number" id="observacionMax" value="115"> KLBF
-        </div>
-        <div class="zona-config">
-            <label>Zona Crítica:</label>
-            0 - <input type="number" id="criticaMax" value="90"> KLBF
-        </div>
-        <div class="zona-actions">
-            <button class="button" id="aplicarZonasBtn" onclick="aplicarZonas()">
-                <span id="zonasButtonText">Mostrar Zonas</span>
-            </button>
-        </div>
-    </div>
-    
     <div class="chart-container">
-        <canvas id="tensionChart"></canvas>
+        <canvas id="myChart"></canvas>
     </div>
     
-    <div id="csv-table" class="hidden">Loading...</div>
+    <div id="csv-table" class="hidden"></div>
 
     <script>
         let chart = null;
@@ -346,143 +311,113 @@
             }
         }
 
-        function createChart(fechas, pernos) {
+        function createChart(fechas, datos) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            
             if (chart) {
                 chart.destroy();
             }
-
-            const ctx = document.getElementById('tensionChart').getContext('2d');
-            
-            // Crear datasets para cada perno
-            const pernoDatasets = [
-                {
-                    label: 'Perno 1',
-                    data: pernos.perno_1,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    z: 10
-                },
-                {
-                    label: 'Perno 2',
-                    data: pernos.perno_2,
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    z: 10
-                },
-                {
-                    label: 'Perno 3',
-                    data: pernos.perno_3,
-                    borderColor: 'rgb(255, 205, 86)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    z: 10
-                },
-                {
-                    label: 'Perno 4',
-                    data: pernos.perno_4,
-                    borderColor: 'rgb(54, 162, 235)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    z: 10
-                },
-                {
-                    label: 'Perno 5',
-                    data: pernos.perno_5,
-                    borderColor: 'rgb(153, 102, 255)',
-                    tension: 0.1,
-                    fill: false,
-                    borderWidth: 2,
-                    pointRadius: 2,
-                    z: 10
-                }
-            ];
-
-            // Agregar datasets de zonas
-            const zonaDatasets = [
-                {
-                    label: 'Zona de Trabajo Normal',
-                    data: Array(fechas.length).fill(zonas.trabajo.max),
-                    borderColor: 'transparent',
-                    backgroundColor: zonas.trabajo.color,
-                    fill: '+1',
-                    pointRadius: 0,
-                    z: 1,
-                    hidden: !zonasVisible
-                },
-                {
-                    data: Array(fechas.length).fill(zonas.trabajo.min),
-                    borderColor: 'transparent',
-                    fill: false,
-                    pointRadius: 0,
-                    hidden: !zonasVisible
-                },
-                {
-                    label: 'Zona de Observación',
-                    data: Array(fechas.length).fill(zonas.observacion.max),
-                    borderColor: 'transparent',
-                    backgroundColor: zonas.observacion.color,
-                    fill: '+1',
-                    pointRadius: 0,
-                    z: 2,
-                    hidden: !zonasVisible
-                },
-                {
-                    data: Array(fechas.length).fill(zonas.observacion.min),
-                    borderColor: 'transparent',
-                    fill: false,
-                    pointRadius: 0,
-                    hidden: !zonasVisible
-                },
-                {
-                    label: 'Zona Crítica',
-                    data: Array(fechas.length).fill(zonas.critica.max),
-                    borderColor: 'transparent',
-                    backgroundColor: zonas.critica.color,
-                    fill: '+1',
-                    pointRadius: 0,
-                    z: 3,
-                    hidden: !zonasVisible
-                }
-            ];
 
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [...pernoDatasets, ...zonaDatasets]
+                    datasets: [
+                        {
+                            label: 'Perno 1',
+                            data: datos.perno_1,
+                            borderColor: 'rgba(0, 255, 255, 1)',
+                            backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Perno 2',
+                            data: datos.perno_2,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Perno 3',
+                            data: datos.perno_3,
+                            borderColor: 'rgba(255, 206, 86, 1)',
+                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Perno 4',
+                            data: datos.perno_4,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Perno 5',
+                            data: datos.perno_5,
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: isRealTime ? 0 : 1000
-                    },
                     plugins: {
                         legend: {
                             position: 'top',
                             labels: {
-                                filter: function(legendItem, data) {
-                                    return legendItem.text !== undefined;
-                                }
+                                usePointStyle: true,
+                                padding: 20
                             }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.dataset.label.startsWith('Perno')) {
-                                        return `${context.dataset.label}: ${context.raw} KLBF`;
+                        annotation: {
+                            annotations: {
+                                zonaTrabajoNormal: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: 115,
+                                    yMax: 175,
+                                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                                    borderColor: 'transparent',
+                                    label: {
+                                        content: 'Zona de Trabajo Normal',
+                                        enabled: true,
+                                        position: 'end'
                                     }
-                                    return context.dataset.label;
+                                },
+                                zonaObservacion: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: 90,
+                                    yMax: 115,
+                                    backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                                    borderColor: 'transparent',
+                                    label: {
+                                        content: 'Zona de Observación',
+                                        enabled: true,
+                                        position: 'end'
+                                    }
+                                },
+                                zonaCritica: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: 0,
+                                    yMax: 90,
+                                    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                                    borderColor: 'transparent',
+                                    label: {
+                                        content: 'Zona Crítica',
+                                        enabled: true,
+                                        position: 'end'
+                                    }
                                 }
                             }
                         }
@@ -492,12 +427,6 @@
                             title: {
                                 display: true,
                                 text: 'Fecha y Hora'
-                            },
-                            ticks: {
-                                maxTicksLimit: 10,
-                                autoSkip: true,
-                                maxRotation: 45,
-                                minRotation: 45
                             }
                         },
                         y: {
