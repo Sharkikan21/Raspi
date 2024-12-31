@@ -108,14 +108,18 @@ def get_db_data():
         if format_type == 'json':
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'perno_1': df['perno_1'].tolist(),
-                'perno_2': df['perno_2'].tolist(),
-                'perno_3': df['perno_3'].tolist(),
-                'perno_4': df['perno_4'].tolist(),
-                'perno_5': df['perno_5'].tolist()
+                'perno_1': df['perno_1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_2': df['perno_2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_3': df['perno_3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_4': df['perno_4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_5': df['perno_5'].apply(lambda x: float(f"{x:.2f}")).tolist()
             }
             return jsonify(data)
         else:
+            # Truncar todas las columnas numéricas a 2 decimales
+            numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
+            for col in numeric_columns:
+                df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
             return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
