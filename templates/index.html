@@ -259,23 +259,18 @@
         <h3>Configuración de Zonas</h3>
         <div class="zona-config">
             <div class="zona-group">
-                <label>Zona de Instalación:</label>
-                <input type="number" id="zonaInstalacionMin" value="140" step="1"> -
-                <input type="number" id="zonaInstalacionMax" value="200" step="1">
+                <label>Zona de Trabajo Normal:</label>
+                <input type="number" id="zonaTrabajoMin" value="115" step="1"> -
+                <input type="number" id="zonaTrabajoMax" value="175" step="1">
             </div>
             <div class="zona-group">
-                <label>Zona de Operación:</label>
-                <input type="number" id="zonaOperacionMin" value="110" step="1"> -
-                <input type="number" id="zonaOperacionMax" value="140" step="1">
-            </div>
-            <div class="zona-group">
-                <label>Zona de Seguimiento:</label>
-                <input type="number" id="zonaSeguimientoMin" value="80" step="1"> -
-                <input type="number" id="zonaSeguimientoMax" value="110" step="1">
+                <label>Zona de Observación:</label>
+                <input type="number" id="zonaObservacionMin" value="90" step="1"> -
+                <input type="number" id="zonaObservacionMax" value="115" step="1">
             </div>
             <div class="zona-group">
                 <label>Zona Crítica:</label>
-                0 - <input type="number" id="zonaCriticaMax" value="80" step="1">
+                0 - <input type="number" id="zonaCriticaMax" value="90" step="1">
             </div>
         </div>
         <button class="button" onclick="updateZonas()">Aplicar Cambios</button>
@@ -462,44 +457,30 @@
                         },
                         annotation: {
                             annotations: {
-                                zonaInstalacion: {
+                                zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: 140,
-                                    yMax: 200,
+                                    yMin: 115,
+                                    yMax: 175,
                                     backgroundColor: 'rgba(144, 238, 144, 0.2)',
                                     borderColor: 'transparent',
                                     label: {
-                                        content: 'Zona de instalación',
+                                        content: 'ZONA DE TRABAJO NORMAL',
                                         enabled: true,
                                         position: 'end'
                                     }
                                 },
-                                zonaOperacion: {
+                                zonaObservacion: {
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: 110,
-                                    yMax: 140,
+                                    yMin: 90,
+                                    yMax: 115,
                                     backgroundColor: 'rgba(255, 255, 224, 0.2)',
                                     borderColor: 'transparent',
                                     label: {
-                                        content: 'Zona de operación',
-                                        enabled: true,
-                                        position: 'end'
-                                    }
-                                },
-                                zonaSeguimiento: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: 80,
-                                    yMax: 110,
-                                    backgroundColor: 'rgba(255, 218, 185, 0.2)',
-                                    borderColor: 'transparent',
-                                    label: {
-                                        content: 'Zona de seguimiento',
+                                        content: 'ZONA DE OBSERVACIÓN',
                                         enabled: true,
                                         position: 'end'
                                     }
@@ -509,11 +490,11 @@
                                     xScaleID: 'x',
                                     yScaleID: 'y',
                                     yMin: 0,
-                                    yMax: 80,
+                                    yMax: 90,
                                     backgroundColor: 'rgba(255, 192, 192, 0.2)',
                                     borderColor: 'transparent',
                                     label: {
-                                        content: 'Zona crítica',
+                                        content: 'ZONA CRÍTICA',
                                         enabled: true,
                                         position: 'end'
                                     }
@@ -618,63 +599,45 @@
         fetchData(); // Initial fetch
 
         function updateZonas() {
-            const zonaInstalacion = {
-                min: parseFloat(document.getElementById('zonaInstalacionMin').value) || 140,
-                max: parseFloat(document.getElementById('zonaInstalacionMax').value) || 200
+            const zonaTrabajoNormal = {
+                min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
+                max: parseFloat(document.getElementById('zonaTrabajoMax').value) || 175
             };
-            const zonaOperacion = {
-                min: parseFloat(document.getElementById('zonaOperacionMin').value) || 110,
-                max: parseFloat(document.getElementById('zonaOperacionMax').value) || 140
-            };
-            const zonaSeguimiento = {
-                min: parseFloat(document.getElementById('zonaSeguimientoMin').value) || 80,
-                max: parseFloat(document.getElementById('zonaSeguimientoMax').value) || 110
+            const zonaObservacion = {
+                min: parseFloat(document.getElementById('zonaObservacionMin').value) || 90,
+                max: parseFloat(document.getElementById('zonaObservacionMax').value) || 115
             };
             const zonaCritica = {
                 min: 0,
-                max: parseFloat(document.getElementById('zonaCriticaMax').value) || 80
+                max: parseFloat(document.getElementById('zonaCriticaMax').value) || 90
             };
 
             if (chart) {
                 chart.options.plugins.annotation.annotations = {
-                    zonaInstalacion: {
+                    zonaTrabajoNormal: {
                         type: 'box',
                         xScaleID: 'x',
                         yScaleID: 'y',
-                        yMin: zonaInstalacion.min,
-                        yMax: zonaInstalacion.max,
-                        backgroundColor: 'rgba(144, 238, 144, 0.4)',  // Verde más oscuro
+                        yMin: zonaTrabajoNormal.min,
+                        yMax: zonaTrabajoNormal.max,
+                        backgroundColor: 'rgba(144, 238, 144, 0.3)',  // Verde
                         borderColor: 'transparent',
                         label: {
-                            content: 'Zona de instalación',
+                            content: 'ZONA DE TRABAJO NORMAL',
                             enabled: true,
                             position: 'end'
                         }
                     },
-                    zonaOperacion: {
+                    zonaObservacion: {
                         type: 'box',
                         xScaleID: 'x',
                         yScaleID: 'y',
-                        yMin: zonaOperacion.min,
-                        yMax: zonaOperacion.max,
-                        backgroundColor: 'rgba(255, 255, 0, 0.3)',  // Amarillo más oscuro
+                        yMin: zonaObservacion.min,
+                        yMax: zonaObservacion.max,
+                        backgroundColor: 'rgba(255, 255, 224, 0.3)',  // Amarillo
                         borderColor: 'transparent',
                         label: {
-                            content: 'Zona de operación',
-                            enabled: true,
-                            position: 'end'
-                        }
-                    },
-                    zonaSeguimiento: {
-                        type: 'box',
-                        xScaleID: 'x',
-                        yScaleID: 'y',
-                        yMin: zonaSeguimiento.min,
-                        yMax: zonaSeguimiento.max,
-                        backgroundColor: 'rgba(255, 165, 0, 0.3)',  // Naranja más oscuro
-                        borderColor: 'transparent',
-                        label: {
-                            content: 'Zona de seguimiento',
+                            content: 'ZONA DE OBSERVACIÓN',
                             enabled: true,
                             position: 'end'
                         }
@@ -685,10 +648,10 @@
                         yScaleID: 'y',
                         yMin: zonaCritica.min,
                         yMax: zonaCritica.max,
-                        backgroundColor: 'rgba(255, 0, 0, 0.3)',  // Rojo más oscuro
+                        backgroundColor: 'rgba(255, 192, 192, 0.3)',  // Rojo
                         borderColor: 'transparent',
                         label: {
-                            content: 'Zona crítica',
+                            content: 'ZONA CRÍTICA',
                             enabled: true,
                             position: 'end'
                         }
