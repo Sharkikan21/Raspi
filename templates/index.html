@@ -185,18 +185,6 @@
         .checkbox-group input[type="checkbox"] {
             margin: 0;
         }
-        .zona-visibility {
-            margin-bottom: 15px;
-            padding: 5px 0;
-        }
-        
-        .zona-visibility label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            user-select: none;
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -261,12 +249,6 @@
     
     <div id="zonasContainer" class="zonas-container hidden">
         <h3>Configuración de Zonas</h3>
-        <div class="zona-visibility">
-            <label>
-                <input type="checkbox" id="mostrarZonas" checked onchange="toggleZonasVisibility()">
-                Mostrar zonas en el gráfico
-            </label>
-        </div>
         <div class="zona-config">
             <div class="zona-group">
                 <label>Zona de Trabajo Normal:</label>
@@ -317,7 +299,6 @@
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
-        let zonasVisible = true;
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -654,11 +635,11 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.trabajo.min,
                         yMax: zonasConfig.trabajo.max,
-                        backgroundColor: zonasVisible ? 'rgba(0, 200, 0, 0.4)' : 'rgba(0, 0, 0, 0)',
+                        backgroundColor: 'rgba(0, 200, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE TRABAJO NORMAL',
-                            enabled: zonasVisible,
+                            enabled: true,
                             position: 'end'
                         }
                     },
@@ -668,11 +649,11 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.observacion.min,
                         yMax: zonasConfig.observacion.max,
-                        backgroundColor: zonasVisible ? 'rgba(255, 255, 0, 0.4)' : 'rgba(0, 0, 0, 0)',
+                        backgroundColor: 'rgba(255, 255, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE OBSERVACIÓN',
-                            enabled: zonasVisible,
+                            enabled: true,
                             position: 'end'
                         }
                     },
@@ -682,11 +663,11 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.critica.min,
                         yMax: zonasConfig.critica.max,
-                        backgroundColor: zonasVisible ? 'rgba(255, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0)',
+                        backgroundColor: 'rgba(255, 0, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA CRÍTICA',
-                            enabled: zonasVisible,
+                            enabled: true,
                             position: 'end'
                         }
                     }
@@ -811,19 +792,6 @@
                         });
                     }
                 });
-        }
-
-        function toggleZonasVisibility() {
-            zonasVisible = document.getElementById('mostrarZonas').checked;
-            if (chart) {
-                const annotations = chart.options.plugins.annotation.annotations;
-                for (let key in annotations) {
-                    annotations[key].backgroundColor = zonasVisible ? 
-                        annotations[key].backgroundColor : 'rgba(0, 0, 0, 0)';
-                    annotations[key].label.enabled = zonasVisible;
-                }
-                chart.update();
-            }
         }
     </script>
 </body>
