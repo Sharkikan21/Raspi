@@ -71,27 +71,34 @@
             pointer-events: none;
         }
         .zonas-container {
-            margin: 20px 0;
-            padding: 15px;
             background-color: #f8f9fa;
+            padding: 15px;
             border-radius: 5px;
-            transition: all 0.3s ease;
+            margin-top: 10px;
         }
         .zonas-container.hidden {
             display: none;
-            opacity: 0;
         }
         .zona-config {
-            margin: 10px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 15px 0;
         }
-        .zona-config input {
-            width: 70px;
-            margin: 0 5px;
-            padding: 3px;
+        .zona-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .zona-config label {
+        .zona-group label {
+            min-width: 150px;
             font-weight: bold;
-            margin-right: 10px;
+        }
+        .zona-group input {
+            width: 70px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         #zonasBtn {
             background-color: #607d8b;
@@ -246,6 +253,32 @@
         </div>
         
         <div id="csv-table" class="hidden"></div>
+    </div>
+
+    <div id="zonasContainer" class="zonas-container hidden">
+        <h3>Configuración de Zonas</h3>
+        <div class="zona-config">
+            <div class="zona-group">
+                <label>Zona de Instalación:</label>
+                <input type="number" id="zonaInstalacionMin" value="140" step="1"> -
+                <input type="number" id="zonaInstalacionMax" value="200" step="1">
+            </div>
+            <div class="zona-group">
+                <label>Zona de Operación:</label>
+                <input type="number" id="zonaOperacionMin" value="110" step="1"> -
+                <input type="number" id="zonaOperacionMax" value="140" step="1">
+            </div>
+            <div class="zona-group">
+                <label>Zona de Seguimiento:</label>
+                <input type="number" id="zonaSeguimientoMin" value="80" step="1"> -
+                <input type="number" id="zonaSeguimientoMax" value="110" step="1">
+            </div>
+            <div class="zona-group">
+                <label>Zona Crítica:</label>
+                0 - <input type="number" id="zonaCriticaMax" value="80" step="1">
+            </div>
+        </div>
+        <button class="button" onclick="updateZonas()">Aplicar Cambios</button>
     </div>
 
     <script>
@@ -585,12 +618,84 @@
         fetchData(); // Initial fetch
 
         function updateZonas() {
-            zonas = {
-                trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
-                observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
-                critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
+            const zonaInstalacion = {
+                min: parseFloat(document.getElementById('zonaInstalacionMin').value) || 140,
+                max: parseFloat(document.getElementById('zonaInstalacionMax').value) || 200
             };
-            fetchData();
+            const zonaOperacion = {
+                min: parseFloat(document.getElementById('zonaOperacionMin').value) || 110,
+                max: parseFloat(document.getElementById('zonaOperacionMax').value) || 140
+            };
+            const zonaSeguimiento = {
+                min: parseFloat(document.getElementById('zonaSeguimientoMin').value) || 80,
+                max: parseFloat(document.getElementById('zonaSeguimientoMax').value) || 110
+            };
+            const zonaCritica = {
+                min: 0,
+                max: parseFloat(document.getElementById('zonaCriticaMax').value) || 80
+            };
+
+            if (chart) {
+                chart.options.plugins.annotation.annotations = {
+                    zonaInstalacion: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonaInstalacion.min,
+                        yMax: zonaInstalacion.max,
+                        backgroundColor: 'rgba(144, 238, 144, 0.4)',  // Verde más oscuro
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'Zona de instalación',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    },
+                    zonaOperacion: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonaOperacion.min,
+                        yMax: zonaOperacion.max,
+                        backgroundColor: 'rgba(255, 255, 0, 0.3)',  // Amarillo más oscuro
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'Zona de operación',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    },
+                    zonaSeguimiento: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonaSeguimiento.min,
+                        yMax: zonaSeguimiento.max,
+                        backgroundColor: 'rgba(255, 165, 0, 0.3)',  // Naranja más oscuro
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'Zona de seguimiento',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    },
+                    zonaCritica: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonaCritica.min,
+                        yMax: zonaCritica.max,
+                        backgroundColor: 'rgba(255, 0, 0, 0.3)',  // Rojo más oscuro
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'Zona crítica',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    }
+                };
+                chart.update();
+            }
         }
 
         function updateRangos() {
@@ -605,14 +710,10 @@
 
         function toggleZonas() {
             const zonasContainer = document.getElementById('zonasContainer');
-            const zonasBtn = document.getElementById('zonasBtn');
-            
             if (zonasContainer.classList.contains('hidden')) {
                 zonasContainer.classList.remove('hidden');
-                zonasBtn.classList.add('active');
             } else {
                 zonasContainer.classList.add('hidden');
-                zonasBtn.classList.remove('active');
             }
         }
 
