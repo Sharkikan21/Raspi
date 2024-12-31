@@ -22,8 +22,18 @@
         }
         .chart-container {
             width: 100%;
-            height: 400px;
+            height: 500px;
             margin: 20px 0;
+            position: relative;
+        }
+        .data-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        #csv-table {
+            margin-top: 20px;
+            overflow-x: auto;
         }
         .button {
             padding: 8px 15px;
@@ -229,11 +239,13 @@
         </div>
     </div>
     
-    <div class="chart-container">
-        <canvas id="myChart"></canvas>
+    <div class="data-container">
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+        
+        <div id="csv-table" class="hidden"></div>
     </div>
-    
-    <div id="csv-table" class="hidden"></div>
 
     <script>
         let chart = null;
@@ -405,6 +417,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'top',
@@ -465,6 +478,23 @@
                             title: {
                                 display: true,
                                 text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,  // Limitar a 10 etiquetas
+                                callback: function(val, index) {
+                                    // Formatear la fecha para que sea más legible
+                                    const fecha = fechas[val];
+                                    if (fecha) {
+                                        const d = new Date(fecha);
+                                        return d.toLocaleString('es-ES', {
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        });
+                                    }
+                                    return '';
+                                }
                             }
                         },
                         y: {
@@ -473,9 +503,7 @@
                                 text: 'Tensión (KLBF)'
                             },
                             min: 0,
-                            max: 200,
-                            suggestedMin: 0,
-                            suggestedMax: 200
+                            max: 200
                         }
                     }
                 }
