@@ -74,7 +74,7 @@
             background-color: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
-            margin-top: 10px;
+            margin: 10px 0;
         }
         .zonas-container.hidden {
             display: none;
@@ -83,7 +83,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            margin: 15px 0;
+            margin: 10px 0;
         }
         .zona-group {
             display: flex;
@@ -247,14 +247,6 @@
         </div>
     </div>
     
-    <div class="data-container">
-        <div class="chart-container">
-            <canvas id="myChart"></canvas>
-        </div>
-        
-        <div id="csv-table" class="hidden"></div>
-    </div>
-
     <div id="zonasContainer" class="zonas-container hidden">
         <h3>Configuración de Zonas</h3>
         <div class="zona-config">
@@ -274,6 +266,14 @@
             </div>
         </div>
         <button class="button" onclick="updateZonas()">Aplicar Cambios</button>
+    </div>
+    
+    <div class="data-container">
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+        
+        <div id="csv-table" class="hidden"></div>
     </div>
 
     <script>
