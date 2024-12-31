@@ -283,10 +283,19 @@
         let realTimeInterval = null;
         const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
         let lastTimestamp = null;
-        let zonas = {
-            trabajo: {min: 115, max: 175, color: 'rgba(0, 255, 0, 0.1)'},
-            observacion: {min: 90, max: 115, color: 'rgba(255, 255, 0, 0.1)'},
-            critica: {min: 0, max: 90, color: 'rgba(255, 0, 0, 0.2)'}
+        let zonasConfig = {
+            trabajo: {
+                min: 115,
+                max: 175
+            },
+            observacion: {
+                min: 90,
+                max: 115
+            },
+            critica: {
+                min: 0,
+                max: 90
+            }
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
@@ -461,9 +470,9 @@
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: 115,
-                                    yMax: 175,
-                                    backgroundColor: 'rgba(144, 238, 144, 0.2)',
+                                    yMin: zonasConfig.trabajo.min,
+                                    yMax: zonasConfig.trabajo.max,
+                                    backgroundColor: 'rgba(0, 200, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE TRABAJO NORMAL',
@@ -475,9 +484,9 @@
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: 90,
-                                    yMax: 115,
-                                    backgroundColor: 'rgba(255, 255, 224, 0.2)',
+                                    yMin: zonasConfig.observacion.min,
+                                    yMax: zonasConfig.observacion.max,
+                                    backgroundColor: 'rgba(255, 255, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE OBSERVACIÓN',
@@ -489,9 +498,9 @@
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: 0,
-                                    yMax: 90,
-                                    backgroundColor: 'rgba(255, 192, 192, 0.2)',
+                                    yMin: zonasConfig.critica.min,
+                                    yMax: zonasConfig.critica.max,
+                                    backgroundColor: 'rgba(255, 0, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA CRÍTICA',
@@ -599,28 +608,34 @@
         fetchData(); // Initial fetch
 
         function updateZonas() {
-            const zonaTrabajoNormal = {
-                min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
-                max: parseFloat(document.getElementById('zonaTrabajoMax').value) || 175
+            zonasConfig = {
+                trabajo: {
+                    min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
+                    max: parseFloat(document.getElementById('zonaTrabajoMax').value) || 175
+                },
+                observacion: {
+                    min: parseFloat(document.getElementById('zonaObservacionMin').value) || 90,
+                    max: parseFloat(document.getElementById('zonaObservacionMax').value) || 115
+                },
+                critica: {
+                    min: 0,
+                    max: parseFloat(document.getElementById('zonaCriticaMax').value) || 90
+                }
             };
-            const zonaObservacion = {
-                min: parseFloat(document.getElementById('zonaObservacionMin').value) || 90,
-                max: parseFloat(document.getElementById('zonaObservacionMax').value) || 115
-            };
-            const zonaCritica = {
-                min: 0,
-                max: parseFloat(document.getElementById('zonaCriticaMax').value) || 90
-            };
+            
+            actualizarZonasEnGrafico();
+        }
 
+        function actualizarZonasEnGrafico() {
             if (chart) {
                 chart.options.plugins.annotation.annotations = {
                     zonaTrabajoNormal: {
                         type: 'box',
                         xScaleID: 'x',
                         yScaleID: 'y',
-                        yMin: zonaTrabajoNormal.min,
-                        yMax: zonaTrabajoNormal.max,
-                        backgroundColor: 'rgba(144, 238, 144, 0.3)',  // Verde
+                        yMin: zonasConfig.trabajo.min,
+                        yMax: zonasConfig.trabajo.max,
+                        backgroundColor: 'rgba(0, 200, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE TRABAJO NORMAL',
@@ -632,9 +647,9 @@
                         type: 'box',
                         xScaleID: 'x',
                         yScaleID: 'y',
-                        yMin: zonaObservacion.min,
-                        yMax: zonaObservacion.max,
-                        backgroundColor: 'rgba(255, 255, 224, 0.3)',  // Amarillo
+                        yMin: zonasConfig.observacion.min,
+                        yMax: zonasConfig.observacion.max,
+                        backgroundColor: 'rgba(255, 255, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE OBSERVACIÓN',
@@ -646,9 +661,9 @@
                         type: 'box',
                         xScaleID: 'x',
                         yScaleID: 'y',
-                        yMin: zonaCritica.min,
-                        yMax: zonaCritica.max,
-                        backgroundColor: 'rgba(255, 192, 192, 0.3)',  // Rojo
+                        yMin: zonasConfig.critica.min,
+                        yMax: zonasConfig.critica.max,
+                        backgroundColor: 'rgba(255, 0, 0, 0.4)',
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA CRÍTICA',
