@@ -116,11 +116,16 @@
             border-radius: 5px;
         }
         
+        .pernos-selector p {
+            margin: 0 0 10px 0;
+            font-weight: bold;
+        }
+        
         .checkbox-group {
             display: flex;
             gap: 15px;
             flex-wrap: wrap;
-            margin-top: 5px;
+            align-items: center;
         }
         
         .checkbox-group label {
@@ -128,6 +133,7 @@
             align-items: center;
             gap: 5px;
             cursor: pointer;
+            user-select: none;
         }
         
         .checkbox-group input[type="checkbox"] {
@@ -181,14 +187,46 @@
     </div>
     <div class="filter-container">
         <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
-        <div id="filterControls" style="display: inline-block;">
+        <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
+        
+        <div class="pernos-selector">
+            <p>Seleccionar Pernos:</p>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="selectAll" checked onclick="toggleAllPernos()">
+                    Todos
+                </label>
+                <label>
+                    <input type="checkbox" class="perno-checkbox" data-perno="1" checked onclick="togglePerno(1)">
+                    Perno 1
+                </label>
+                <label>
+                    <input type="checkbox" class="perno-checkbox" data-perno="2" checked onclick="togglePerno(2)">
+                    Perno 2
+                </label>
+                <label>
+                    <input type="checkbox" class="perno-checkbox" data-perno="3" checked onclick="togglePerno(3)">
+                    Perno 3
+                </label>
+                <label>
+                    <input type="checkbox" class="perno-checkbox" data-perno="4" checked onclick="togglePerno(4)">
+                    Perno 4
+                </label>
+                <label>
+                    <input type="checkbox" class="perno-checkbox" data-perno="5" checked onclick="togglePerno(5)">
+                    Perno 5
+                </label>
+            </div>
+        </div>
+
+        <div id="filterControls">
             <label>Desde: </label>
             <input type="datetime-local" id="fecha_inicio">
             <label>Hasta: </label>
             <input type="datetime-local" id="fecha_fin">
             <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
+            <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
         </div>
-        <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
     </div>
     
     <div class="chart-container">
