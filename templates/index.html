@@ -314,6 +314,7 @@
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
+        let currentOpacity = 40; // Valor inicial de opacidad
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -416,6 +417,7 @@
 
         function createChart(fechas, datos) {
             const ctx = document.getElementById('myChart').getContext('2d');
+            const opacity = currentOpacity / 100; // Usar la variable global
             
             if (chart) {
                 chart.destroy();
@@ -487,7 +489,7 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.trabajo.min,
                                     yMax: zonasConfig.trabajo.max,
-                                    backgroundColor: 'rgba(0, 200, 0, 0.4)',
+                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE TRABAJO NORMAL',
@@ -501,7 +503,7 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.observacion.min,
                                     yMax: zonasConfig.observacion.max,
-                                    backgroundColor: 'rgba(255, 255, 0, 0.4)',
+                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE OBSERVACIÓN',
@@ -515,7 +517,7 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.critica.min,
                                     yMax: zonasConfig.critica.max,
-                                    backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA CRÍTICA',
@@ -611,16 +613,14 @@
         }
 
         function autoFetch() {
-            // No actualizar si hay filtros activos o si estamos en tiempo real
             if (!isRealTime && 
                 !document.getElementById('fecha_inicio').value && 
                 !document.getElementById('fecha_fin').value) {
                 
-                const currentOpacity = document.getElementById('zonasOpacidad').value;
                 fetchData();
                 // Asegurar que la opacidad se mantenga después de la actualización
                 setTimeout(() => {
-                    updateZonasOpacidad(currentOpacity);
+                    updateChartZonesOpacity(currentOpacity / 100);
                 }, 100);
             }
         }
@@ -629,8 +629,6 @@
         fetchData(); // Initial fetch
 
         function updateZonas() {
-            const opacity = document.getElementById('zonasOpacidad').value / 100;
-            
             zonasConfig = {
                 trabajo: {
                     min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
@@ -647,6 +645,7 @@
             };
             
             if (chart) {
+                const opacity = currentOpacity / 100;
                 chart.options.plugins.annotation.annotations = {
                     zonaTrabajoNormal: {
                         type: 'box',
@@ -815,17 +814,25 @@
 
         // Función para actualizar la opacidad de las zonas
         function updateZonasOpacidad(value) {
+            currentOpacity = parseInt(value); // Actualizar la variable global
             document.getElementById('opacidadValue').textContent = value + '%';
             const opacity = value / 100;
             
             if (chart) {
-                // Actualizar la opacidad de cada zona
-                chart.options.plugins.annotation.annotations.zonaTrabajoNormal.backgroundColor = `rgba(0, 200, 0, ${opacity})`;
-                chart.options.plugins.annotation.annotations.zonaObservacion.backgroundColor = `rgba(255, 255, 0, ${opacity})`;
-                chart.options.plugins.annotation.annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
-                
-                chart.update();
+                updateChartZonesOpacity(opacity);
             }
+        }
+
+        // Nueva función para actualizar la opacidad del gráfico
+        function updateChartZonesOpacity(opacity) {
+            if (!chart) return;
+            
+            const annotations = chart.options.plugins.annotation.annotations;
+            annotations.zonaTrabajoNormal.backgroundColor = `rgba(0, 200, 0, ${opacity})`;
+            annotations.zonaObservacion.backgroundColor = `rgba(255, 255, 0, ${opacity})`;
+            annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
+            
+            chart.update('none');
         }
     </script>
 </body>
