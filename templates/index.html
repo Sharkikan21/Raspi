@@ -194,6 +194,65 @@
             min-width: 45px;
             display: inline-block;
         }
+        .zone-legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .legend-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .legend-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .color-box {
+            width: 20px;
+            height: 15px;
+            margin-right: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .color-box.normal {
+            background-color: rgba(0, 200, 0, 0.3);
+        }
+
+        .color-box.observacion {
+            background-color: rgba(255, 255, 0, 0.3);
+        }
+
+        .color-box.critica {
+            background-color: rgba(255, 0, 0, 0.3);
+        }
+
+        /* Asegurarse que el contenedor del gráfico tenga posición relativa */
+        #chartContainer {
+            position: relative;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -656,18 +715,7 @@
                         backgroundColor: `rgba(0, 200, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
-                            content: 'ZONA DE TRABAJO NORMAL',
-                            display: true,
-                            position: 'start',
-                            backgroundColor: 'rgba(0, 200, 0, 0.8)',
-                            color: 'white',
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            },
-                            xPadding: 6,
-                            yPadding: 4,
-                            cornerRadius: 4
+                            enabled: false
                         }
                     },
                     zonaObservacion: {
@@ -679,18 +727,7 @@
                         backgroundColor: `rgba(255, 255, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
-                            content: 'ZONA DE OBSERVACIÓN',
-                            display: true,
-                            position: 'start',
-                            backgroundColor: 'rgba(255, 255, 0, 0.8)',
-                            color: 'black',
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            },
-                            xPadding: 6,
-                            yPadding: 4,
-                            cornerRadius: 4
+                            enabled: false
                         }
                     },
                     zonaCritica: {
@@ -702,18 +739,7 @@
                         backgroundColor: `rgba(255, 0, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
-                            content: 'ZONA CRÍTICA',
-                            display: true,
-                            position: 'start',
-                            backgroundColor: 'rgba(255, 0, 0, 0.8)',
-                            color: 'white',
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            },
-                            xPadding: 6,
-                            yPadding: 4,
-                            cornerRadius: 4
+                            enabled: false
                         }
                     }
                 };
@@ -867,6 +893,51 @@
             annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
             
             chart.update('none');
+        }
+
+        // Función para crear y actualizar la leyenda personalizada
+        function updateCustomLegend() {
+            // Remover leyenda existente si hay una
+            const existingLegend = document.getElementById('zoneLegend');
+            if (existingLegend) {
+                existingLegend.remove();
+            }
+
+            // Crear nueva leyenda
+            const legendDiv = document.createElement('div');
+            legendDiv.id = 'zoneLegend';
+            legendDiv.className = 'zone-legend';
+            legendDiv.innerHTML = `
+                <div class="legend-header">
+                    <span>Tensión</span>
+                    <button class="legend-toggle">×</button>
+                </div>
+                <div class="legend-content">
+                    <div class="legend-item">
+                        <span class="color-box normal"></span>
+                        <span>ZONA DE TRABAJO NORMAL (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max} KLBF)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box observacion"></span>
+                        <span>ZONA DE OBSERVACIÓN (${zonasConfig.observacion.min}-${zonasConfig.observacion.max} KLBF)</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box critica"></span>
+                        <span>ZONA CRÍTICA (<${zonasConfig.critica.max} KLBF)</span>
+                    </div>
+                </div>
+            `;
+
+            // Añadir la leyenda al contenedor del gráfico
+            const chartContainer = document.getElementById('myChart').parentElement;
+            chartContainer.appendChild(legendDiv);
+
+            // Añadir funcionalidad para ocultar/mostrar
+            const toggleBtn = legendDiv.querySelector('.legend-toggle');
+            const content = legendDiv.querySelector('.legend-content');
+            toggleBtn.onclick = () => {
+                content.style.display = content.style.display === 'none' ? 'block' : 'none';
+            };
         }
     </script>
 </body>
