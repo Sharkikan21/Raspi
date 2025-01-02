@@ -273,6 +273,12 @@
                 <label>Zona Crítica:</label>
                 0 - <input type="number" id="zonaCriticaMax" value="90" step="1">
             </div>
+            <div class="zona-group">
+                <label>Opacidad de zonas:</label>
+                <input type="range" id="zonasOpacidad" min="0" max="100" value="40" 
+                       oninput="updateZonasOpacidad(this.value)">
+                <span id="opacidadValue">40%</span>
+            </div>
         </div>
         <button class="button" onclick="updateZonas()">Aplicar Cambios</button>
     </div>
