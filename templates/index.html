@@ -718,6 +718,13 @@
                     }
                 };
                 chart.update();
+                
+                // Actualizar la leyenda
+                const customLegend = document.getElementById('customLegend');
+                if (customLegend) {
+                    customLegend.remove();
+                }
+                addCustomLegend();
             }
         }
 
