@@ -185,16 +185,6 @@
         .checkbox-group input[type="checkbox"] {
             margin: 0;
         }
-        .zona-visibility {
-            margin: 10px 0;
-        }
-        
-        .zona-visibility label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -259,12 +249,6 @@
     
     <div id="zonasContainer" class="zonas-container hidden">
         <h3>Configuración de Zonas</h3>
-        <div class="zona-visibility">
-            <label>
-                <input type="checkbox" id="mostrarZonas" checked onchange="toggleZonasVisibility()">
-                Mostrar zonas coloreadas
-            </label>
-        </div>
         <div class="zona-config">
             <div class="zona-group">
                 <label>Zona de Trabajo Normal:</label>
@@ -315,7 +299,6 @@
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
-        let zonasVisible = true;
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -430,7 +413,7 @@
                     datasets: [
                         {
                             label: 'Perno 1',
-                            data: datos.perno_1,
+                            data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
                             borderColor: 'rgba(0, 255, 255, 1)',
                             backgroundColor: 'rgba(0, 255, 255, 0.1)',
                             borderWidth: 2,
@@ -438,7 +421,7 @@
                         },
                         {
                             label: 'Perno 2',
-                            data: datos.perno_2,
+                            data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
                             borderColor: 'rgba(255, 99, 132, 1)',
                             backgroundColor: 'rgba(255, 99, 132, 0.1)',
                             borderWidth: 2,
@@ -446,7 +429,7 @@
                         },
                         {
                             label: 'Perno 3',
-                            data: datos.perno_3,
+                            data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
                             borderColor: 'rgba(255, 206, 86, 1)',
                             backgroundColor: 'rgba(255, 206, 86, 0.1)',
                             borderWidth: 2,
@@ -454,7 +437,7 @@
                         },
                         {
                             label: 'Perno 4',
-                            data: datos.perno_4,
+                            data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
                             borderColor: 'rgba(54, 162, 235, 1)',
                             backgroundColor: 'rgba(54, 162, 235, 0.1)',
                             borderWidth: 2,
@@ -462,7 +445,7 @@
                         },
                         {
                             label: 'Perno 5',
-                            data: datos.perno_5,
+                            data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
                             borderColor: 'rgba(153, 102, 255, 1)',
                             backgroundColor: 'rgba(153, 102, 255, 0.1)',
                             borderWidth: 2,
@@ -474,6 +457,13 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
@@ -482,11 +472,11 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.trabajo.min,
                                     yMax: zonasConfig.trabajo.max,
-                                    backgroundColor: zonasVisible ? 'rgba(0, 200, 0, 0.4)' : 'transparent',
+                                    backgroundColor: 'rgba(0, 200, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE TRABAJO NORMAL',
-                                        enabled: zonasVisible,
+                                        enabled: true,
                                         position: 'end'
                                     }
                                 },
@@ -496,11 +486,11 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.observacion.min,
                                     yMax: zonasConfig.observacion.max,
-                                    backgroundColor: zonasVisible ? 'rgba(255, 255, 0, 0.4)' : 'transparent',
+                                    backgroundColor: 'rgba(255, 255, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA DE OBSERVACIÓN',
-                                        enabled: zonasVisible,
+                                        enabled: true,
                                         position: 'end'
                                     }
                                 },
@@ -510,11 +500,11 @@
                                     yScaleID: 'y',
                                     yMin: zonasConfig.critica.min,
                                     yMax: zonasConfig.critica.max,
-                                    backgroundColor: zonasVisible ? 'rgba(255, 0, 0, 0.4)' : 'transparent',
+                                    backgroundColor: 'rgba(255, 0, 0, 0.4)',
                                     borderColor: 'transparent',
                                     label: {
                                         content: 'ZONA CRÍTICA',
-                                        enabled: zonasVisible,
+                                        enabled: true,
                                         position: 'end'
                                     }
                                 }
@@ -638,17 +628,51 @@
 
         function actualizarZonasEnGrafico() {
             if (chart) {
-                const annotations = chart.options.plugins.annotation.annotations;
-                Object.keys(annotations).forEach(key => {
-                    if (annotations[key]) {
-                        annotations[key].backgroundColor = zonasVisible ? 
-                            (key === 'zonaTrabajoNormal' ? 'rgba(0, 200, 0, 0.4)' :
-                             key === 'zonaObservacion' ? 'rgba(255, 255, 0, 0.4)' :
-                             'rgba(255, 0, 0, 0.4)') : 'transparent';
-                        annotations[key].label.enabled = zonasVisible;
+                chart.options.plugins.annotation.annotations = {
+                    zonaTrabajoNormal: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonasConfig.trabajo.min,
+                        yMax: zonasConfig.trabajo.max,
+                        backgroundColor: 'rgba(0, 200, 0, 0.4)',
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'ZONA DE TRABAJO NORMAL',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    },
+                    zonaObservacion: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonasConfig.observacion.min,
+                        yMax: zonasConfig.observacion.max,
+                        backgroundColor: 'rgba(255, 255, 0, 0.4)',
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'ZONA DE OBSERVACIÓN',
+                            enabled: true,
+                            position: 'end'
+                        }
+                    },
+                    zonaCritica: {
+                        type: 'box',
+                        xScaleID: 'x',
+                        yScaleID: 'y',
+                        yMin: zonasConfig.critica.min,
+                        yMax: zonasConfig.critica.max,
+                        backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                        borderColor: 'transparent',
+                        label: {
+                            content: 'ZONA CRÍTICA',
+                            enabled: true,
+                            position: 'end'
+                        }
                     }
-                });
-                chart.update('none'); // Usar 'none' para una actualización más suave
+                };
+                chart.update();
             }
         }
 
@@ -768,11 +792,6 @@
                         });
                     }
                 });
-        }
-
-        function toggleZonasVisibility() {
-            zonasVisible = document.getElementById('mostrarZonas').checked;
-            actualizarZonasEnGrafico();
         }
     </script>
 </body>
