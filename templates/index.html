@@ -476,7 +476,7 @@
 
         function createChart(fechas, datos) {
             const ctx = document.getElementById('myChart').getContext('2d');
-            const opacity = currentOpacity / 100; // Usar la variable global
+            const opacity = currentOpacity / 100;
             
             if (chart) {
                 chart.destroy();
@@ -534,11 +534,7 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            position: 'top',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
-                            }
+                            display: false
                         },
                         annotation: {
                             annotations: {
@@ -549,12 +545,7 @@
                                     yMin: zonasConfig.trabajo.min,
                                     yMax: zonasConfig.trabajo.max,
                                     backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                                    borderColor: 'transparent',
-                                    label: {
-                                        content: 'ZONA DE TRABAJO NORMAL',
-                                        enabled: true,
-                                        position: 'end'
-                                    }
+                                    borderColor: 'transparent'
                                 },
                                 zonaObservacion: {
                                     type: 'box',
@@ -563,12 +554,7 @@
                                     yMin: zonasConfig.observacion.min,
                                     yMax: zonasConfig.observacion.max,
                                     backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                                    borderColor: 'transparent',
-                                    label: {
-                                        content: 'ZONA DE OBSERVACIÓN',
-                                        enabled: true,
-                                        position: 'end'
-                                    }
+                                    borderColor: 'transparent'
                                 },
                                 zonaCritica: {
                                     type: 'box',
@@ -577,12 +563,7 @@
                                     yMin: zonasConfig.critica.min,
                                     yMax: zonasConfig.critica.max,
                                     backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                                    borderColor: 'transparent',
-                                    label: {
-                                        content: 'ZONA CRÍTICA',
-                                        enabled: true,
-                                        position: 'end'
-                                    }
+                                    borderColor: 'transparent'
                                 }
                             }
                         }
@@ -613,6 +594,54 @@
                     }
                 }
             });
+
+            createZoneLegend();
+        }
+
+        function createZoneLegend() {
+            const existingLegend = document.getElementById('zoneLegend');
+            if (existingLegend) {
+                existingLegend.remove();
+            }
+
+            const legendDiv = document.createElement('div');
+            legendDiv.id = 'zoneLegend';
+            legendDiv.className = 'zone-legend';
+            legendDiv.innerHTML = `
+                <div class="legend-header">
+                    <span>Zonas de Operación</span>
+                    <button class="legend-toggle">−</button>
+                </div>
+                <div class="legend-content">
+                    <div class="legend-item">
+                        <span class="color-box normal"></span>
+                        <span>Zona de Trabajo Normal (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max})</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box observacion"></span>
+                        <span>Zona de Observación (${zonasConfig.observacion.min}-${zonasConfig.observacion.max})</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="color-box critica"></span>
+                        <span>Zona Crítica (0-${zonasConfig.critica.max})</span>
+                    </div>
+                </div>
+            `;
+
+            const chartContainer = document.getElementById('myChart').parentElement;
+            chartContainer.appendChild(legendDiv);
+
+            const toggleBtn = legendDiv.querySelector('.legend-toggle');
+            const content = legendDiv.querySelector('.legend-content');
+            toggleBtn.onclick = () => {
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    toggleBtn.textContent = '−';
+                } else {
+                    content.style.display = 'none';
+                    toggleBtn.textContent = '+';
+                }
+            };
         }
 
         function toggleTable() {
@@ -713,10 +742,7 @@
                         yMin: zonasConfig.trabajo.min,
                         yMax: zonasConfig.trabajo.max,
                         backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                        borderColor: 'transparent',
-                        label: {
-                            enabled: false
-                        }
+                        borderColor: 'transparent'
                     },
                     zonaObservacion: {
                         type: 'box',
@@ -725,10 +751,7 @@
                         yMin: zonasConfig.observacion.min,
                         yMax: zonasConfig.observacion.max,
                         backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                        borderColor: 'transparent',
-                        label: {
-                            enabled: false
-                        }
+                        borderColor: 'transparent'
                     },
                     zonaCritica: {
                         type: 'box',
@@ -737,20 +760,12 @@
                         yMin: zonasConfig.critica.min,
                         yMax: zonasConfig.critica.max,
                         backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                        borderColor: 'transparent',
-                        label: {
-                            enabled: false
-                        }
+                        borderColor: 'transparent'
                     }
                 };
                 chart.update();
-                
-                // Actualizar la leyenda
-                const customLegend = document.getElementById('customLegend');
-                if (customLegend) {
-                    customLegend.remove();
-                }
-                addCustomLegend();
+
+                createZoneLegend();
             }
         }
 
@@ -893,51 +908,6 @@
             annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
             
             chart.update('none');
-        }
-
-        // Función para crear y actualizar la leyenda personalizada
-        function updateCustomLegend() {
-            // Remover leyenda existente si hay una
-            const existingLegend = document.getElementById('zoneLegend');
-            if (existingLegend) {
-                existingLegend.remove();
-            }
-
-            // Crear nueva leyenda
-            const legendDiv = document.createElement('div');
-            legendDiv.id = 'zoneLegend';
-            legendDiv.className = 'zone-legend';
-            legendDiv.innerHTML = `
-                <div class="legend-header">
-                    <span>Tensión</span>
-                    <button class="legend-toggle">×</button>
-                </div>
-                <div class="legend-content">
-                    <div class="legend-item">
-                        <span class="color-box normal"></span>
-                        <span>ZONA DE TRABAJO NORMAL (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max} KLBF)</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="color-box observacion"></span>
-                        <span>ZONA DE OBSERVACIÓN (${zonasConfig.observacion.min}-${zonasConfig.observacion.max} KLBF)</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="color-box critica"></span>
-                        <span>ZONA CRÍTICA (<${zonasConfig.critica.max} KLBF)</span>
-                    </div>
-                </div>
-            `;
-
-            // Añadir la leyenda al contenedor del gráfico
-            const chartContainer = document.getElementById('myChart').parentElement;
-            chartContainer.appendChild(legendDiv);
-
-            // Añadir funcionalidad para ocultar/mostrar
-            const toggleBtn = legendDiv.querySelector('.legend-toggle');
-            const content = legendDiv.querySelector('.legend-content');
-            toggleBtn.onclick = () => {
-                content.style.display = content.style.display === 'none' ? 'block' : 'none';
-            };
         }
     </script>
 </body>
