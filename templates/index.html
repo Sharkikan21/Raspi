@@ -615,7 +615,13 @@
             if (!isRealTime && 
                 !document.getElementById('fecha_inicio').value && 
                 !document.getElementById('fecha_fin').value) {
+                
+                const currentOpacity = document.getElementById('zonasOpacidad').value;
                 fetchData();
+                // Asegurar que la opacidad se mantenga después de la actualización
+                setTimeout(() => {
+                    updateZonasOpacidad(currentOpacity);
+                }, 100);
             }
         }
         
