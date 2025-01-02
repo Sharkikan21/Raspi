@@ -374,6 +374,7 @@
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
         let currentOpacity = 40; // Valor inicial de opacidad
+        let isLegendMinimized = false;
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -610,9 +611,9 @@
             legendDiv.innerHTML = `
                 <div class="legend-header">
                     <span>Zonas de Operación</span>
-                    <button class="legend-toggle">−</button>
+                    <button class="legend-toggle">${isLegendMinimized ? '+' : '−'}</button>
                 </div>
-                <div class="legend-content">
+                <div class="legend-content" style="display: ${isLegendMinimized ? 'none' : 'block'}">
                     <div class="legend-item">
                         <span class="color-box normal"></span>
                         <span>Zona de Trabajo Normal (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max})</span>
@@ -634,13 +635,9 @@
             const toggleBtn = legendDiv.querySelector('.legend-toggle');
             const content = legendDiv.querySelector('.legend-content');
             toggleBtn.onclick = () => {
-                if (content.style.display === 'none') {
-                    content.style.display = 'block';
-                    toggleBtn.textContent = '−';
-                } else {
-                    content.style.display = 'none';
-                    toggleBtn.textContent = '+';
-                }
+                isLegendMinimized = !isLegendMinimized;
+                content.style.display = isLegendMinimized ? 'none' : 'block';
+                toggleBtn.textContent = isLegendMinimized ? '+' : '−';
             };
         }
 
