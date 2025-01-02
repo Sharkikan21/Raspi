@@ -623,6 +623,8 @@
         fetchData(); // Initial fetch
 
         function updateZonas() {
+            const opacity = document.getElementById('zonasOpacidad').value / 100;
+            
             zonasConfig = {
                 trabajo: {
                     min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
@@ -638,10 +640,6 @@
                 }
             };
             
-            actualizarZonasEnGrafico();
-        }
-
-        function actualizarZonasEnGrafico() {
             if (chart) {
                 chart.options.plugins.annotation.annotations = {
                     zonaTrabajoNormal: {
@@ -650,7 +648,7 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.trabajo.min,
                         yMax: zonasConfig.trabajo.max,
-                        backgroundColor: 'rgba(0, 200, 0, 0.4)',
+                        backgroundColor: `rgba(0, 200, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE TRABAJO NORMAL',
@@ -664,7 +662,7 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.observacion.min,
                         yMax: zonasConfig.observacion.max,
-                        backgroundColor: 'rgba(255, 255, 0, 0.4)',
+                        backgroundColor: `rgba(255, 255, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA DE OBSERVACIÓN',
@@ -678,7 +676,7 @@
                         yScaleID: 'y',
                         yMin: zonasConfig.critica.min,
                         yMax: zonasConfig.critica.max,
-                        backgroundColor: 'rgba(255, 0, 0, 0.4)',
+                        backgroundColor: `rgba(255, 0, 0, ${opacity})`,
                         borderColor: 'transparent',
                         label: {
                             content: 'ZONA CRÍTICA',
@@ -807,6 +805,21 @@
                         });
                     }
                 });
+        }
+
+        // Función para actualizar la opacidad de las zonas
+        function updateZonasOpacidad(value) {
+            document.getElementById('opacidadValue').textContent = value + '%';
+            const opacity = value / 100;
+            
+            if (chart) {
+                // Actualizar la opacidad de cada zona
+                chart.options.plugins.annotation.annotations.zonaTrabajoNormal.backgroundColor = `rgba(0, 200, 0, ${opacity})`;
+                chart.options.plugins.annotation.annotations.zonaObservacion.backgroundColor = `rgba(255, 255, 0, ${opacity})`;
+                chart.options.plugins.annotation.annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
+                
+                chart.update();
+            }
         }
     </script>
 </body>
