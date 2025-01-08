@@ -454,11 +454,15 @@
             if (isRaspiUser) {
                 // Actualizar datos para usuario Raspi
                 const existingData = chart.data.datasets[0].data;
-                const newDataPoints = newData.medicion.filter((_, index) => 
-                    !existingLabels.includes(newData.fechas[index])
+                const newDataPoints = newData.medicion.filter((value, index) => {
+                    // Solo incluir puntos que no estén en las etiquetas existentes y sean distintos de cero
+                    return !existingLabels.includes(newData.fechas[index]) && value !== 0;
+                });
+                const newValidLabels = newData.fechas.filter((fecha, index) => 
+                    !existingLabels.includes(fecha) && newData.medicion[index] !== 0
                 );
                 
-                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
+                chart.data.labels = [...existingLabels, ...newValidLabels].slice(-MAX_POINTS);
                 chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
             } else {
                 // Actualizar datos para usuario normal

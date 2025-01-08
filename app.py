@@ -126,6 +126,9 @@ def get_db_data():
         df = df.rename(columns=column_mapping)
 
         if username == 'Raspi':
+            # Filtrar datos que son distintos de cero
+            df = df[df['Dato 1'] != 0]  # Filtrar antes de procesar los datos
+            
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
@@ -134,6 +137,7 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
+                # Para la tabla, mostrar solo datos distintos de cero
                 df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
                 df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
                 df['Medición'] = df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}"))
