@@ -137,12 +137,26 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
-                # Para la tabla, mostrar solo las columnas necesarias
-                df_display = df[['Fecha', 'Dato 1']].copy()  # Crear una copia para evitar SettingWithCopyWarning
-                df_display.columns = ['Fecha', 'Medición']  # Renombrar columnas
+                # Para la tabla, mostrar las columnas necesarias incluyendo el número
+                df_display = df[['Numero', 'Fecha', 'Dato 1']].copy()
+                df_display.columns = ['N°', 'Fecha', 'Medición']
                 df_display['Medición'] = df_display['Medición'].apply(lambda x: float(f"{x:.2f}"))
-                df_display = df_display.sort_values('Fecha', ascending=False)  # Ordenar por fecha más reciente
-                return df_display.to_html(classes='table table-striped', index=False)
+                
+                # Ordenar por fecha descendente
+                df_display = df_display.sort_values('Fecha', ascending=False)
+                
+                # Obtener el último valor
+                ultimo_valor = df_display.iloc[0]['Medición']
+                
+                # Crear el HTML de la tabla con el último valor
+                html_tabla = f"""
+                <div style="margin-bottom: 10px; font-size: 1.2em; font-weight: bold;">
+                    Último valor: {ultimo_valor:.2f} KLBF
+                </div>
+                {df_display.to_html(classes='table table-striped', index=False)}
+                """
+                
+                return html_tabla
         else:
             # Eliminar las columnas que solo contienen NaN
             numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
