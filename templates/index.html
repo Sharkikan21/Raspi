@@ -493,16 +493,16 @@
             }
 
             // Verificar si los datos son para el usuario test
-            const isTestUser = !datos.perno_2;
+            const isTestUser = datos.isRaspiUser;
 
-            // Configurar escala Y (ahora siempre de 0 a 200)
+            // Configurar escala Y
             const yAxisConfig = {
                 title: {
                     display: true,
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: 200,  // Fijado a 200 para todos los usuarios
+                max: 200,
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -513,7 +513,7 @@
             const datasets = isTestUser ? [
                 {
                     label: 'Medición',
-                    data: datos.medicion.map(v => Math.floor(v * 100) / 100),
+                    data: datos.medicion,
                     borderColor: 'rgba(0, 255, 255, 1)',
                     backgroundColor: 'rgba(0, 255, 255, 0.1)',
                     borderWidth: 2,
@@ -522,7 +522,7 @@
             ] : [
                 {
                     label: 'Dato 1',
-                    data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_1,
                     borderColor: 'rgba(0, 255, 255, 1)',
                     backgroundColor: 'rgba(0, 255, 255, 0.1)',
                     borderWidth: 2,
@@ -530,7 +530,7 @@
                 },
                 {
                     label: 'Dato 2',
-                    data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_2,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     borderWidth: 2,
@@ -538,7 +538,7 @@
                 },
                 {
                     label: 'Dato 3',
-                    data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_3,
                     borderColor: 'rgba(255, 206, 86, 1)',
                     backgroundColor: 'rgba(255, 206, 86, 0.1)',
                     borderWidth: 2,
@@ -546,7 +546,7 @@
                 },
                 {
                     label: 'Dato 4',
-                    data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_4,
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     borderWidth: 2,
@@ -554,7 +554,7 @@
                 },
                 {
                     label: 'Dato 5',
-                    data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_5,
                     borderColor: 'rgba(153, 102, 255, 1)',
                     backgroundColor: 'rgba(153, 102, 255, 0.1)',
                     borderWidth: 2,
@@ -672,58 +672,51 @@
 
         function toggleTable() {
             const tableDiv = document.getElementById('csv-table');
-            const toggleBtn = document.getElementById('toggleTableBtn');
+            const btn = document.getElementById('toggleTableBtn');
             tableVisible = !tableVisible;
             
             if (tableVisible) {
                 tableDiv.classList.remove('hidden');
-                toggleBtn.textContent = 'Ocultar Tabla';
+                btn.textContent = 'Ocultar Tabla';
+                fetchData(); // Cargar datos de la tabla
             } else {
                 tableDiv.classList.add('hidden');
-                toggleBtn.textContent = 'Mostrar Tabla';
+                btn.textContent = 'Mostrar Tabla';
             }
         }
 
         function fetchData() {
-            const fechaInicio = document.getElementById('fecha_inicio').value;
-            const fechaFin = document.getElementById('fecha_fin').value;
+            const fecha_inicio = document.getElementById('fecha_inicio').value;
+            const fecha_fin = document.getElementById('fecha_fin').value;
             
-            let tableUrl = '/data';
-            let chartUrl = '/data?format=json';
+            // URL base para los datos
+            let baseUrl = '/data';
+            let params = new URLSearchParams();
             
-            if (fechaInicio && fechaFin) {
-                const params = `fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
-                tableUrl += `?${params}`;
-                chartUrl += `&${params}`;
+            if (fecha_inicio && fecha_fin) {
+                params.append('fecha_inicio', fecha_inicio);
+                params.append('fecha_fin', fecha_fin);
             }
-            
-            // Detener la actualización automática si hay filtros activos
-            if (fechaInicio || fechaFin) {
-                if (realTimeInterval) {
-                    clearInterval(realTimeInterval);
-                    isRealTime = false;
-                    document.getElementById('realTimeBtn').classList.remove('active');
-                }
-            }
-            
-            fetch(tableUrl)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('csv-table').innerHTML = data;
-                });
-                
-            fetch(chartUrl)
+
+            // Obtener datos para el gráfico (JSON)
+            fetch(`${baseUrl}?${params.toString()}&format=json`)
                 .then(response => response.json())
                 .then(data => {
-                    createChart(data.fechas, {
-                        perno_1: data.perno_1,
-                        perno_2: data.perno_2,
-                        perno_3: data.perno_3,
-                        perno_4: data.perno_4,
-                        perno_5: data.perno_5
-                    });
-                    updateChartVisibility();
-                });
+                    if (data.fechas && data.fechas.length > 0) {
+                        createChart(data.fechas, data);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+
+            // Obtener datos para la tabla (HTML)
+            if (tableVisible) {
+                fetch(`${baseUrl}?${params.toString()}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('csv-table').innerHTML = html;
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
         }
 
         function autoFetch() {
