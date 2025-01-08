@@ -126,39 +126,40 @@ def get_db_data():
         df = df.rename(columns=column_mapping)
 
         if username == 'Raspi':
-            # Filtrar datos que son distintos de cero
-            df = df[df['Dato 1'] != 0]  # Filtrar antes de procesar los datos
+            # Filtrar datos que son distintos de cero y no son NaN
+            df = df[df['Dato 1'].notna() & (df['Dato 1'] != 0)]
             
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'medicion': df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'medicion': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
                     'isRaspiUser': True
                 }
                 return jsonify(data)
             else:
-                # Para la tabla, mostrar solo datos distintos de cero
+                # Para la tabla, mostrar solo datos válidos
                 df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
                 df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
-                df['Medición'] = df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}"))
+                df['Medición'] = df['Dato 1'].apply(lambda x: float(f"{x:.2f}"))
                 df = df.sort_values('Numero', ascending=False)
                 return df.to_html(classes='table table-striped', index=False)
         else:
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'perno_1': df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_2': df['Dato 2'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_3': df['Dato 3'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_4': df['Dato 4'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_5': df['Dato 5'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_1': df['Dato 1'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
+                    'perno_2': df['Dato 2'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
+                    'perno_3': df['Dato 3'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
+                    'perno_4': df['Dato 4'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
+                    'perno_5': df['Dato 5'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
                     'isRaspiUser': False
                 }
                 return jsonify(data)
             else:
+                # Para la tabla, dejar los NaN como espacios vacíos
                 numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
                 for col in numeric_columns:
-                    df[col] = df[col].fillna(0).apply(lambda x: float(f"{x:.2f}"))
+                    df[col] = df[col].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) and x != 0 else "")
                 return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
