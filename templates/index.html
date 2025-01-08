@@ -355,25 +355,15 @@
         let tableVisible = false;
         let isRealTime = false;
         let realTimeInterval = null;
-        const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
+        const MAX_POINTS = 50;
         let lastTimestamp = null;
         let zonasConfig = {
-            trabajo: {
-                min: 115,
-                max: 175
-            },
-            observacion: {
-                min: 90,
-                max: 115
-            },
-            critica: {
-                min: 0,
-                max: 90
-            }
+            trabajo: { min: 115, max: 175 },
+            observacion: { min: 90, max: 115 },
+            critica: { min: 0, max: 90 }
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
-        let selectedRaspberries = new Set();
-        let currentOpacity = 40; // Valor inicial de opacidad
+        let currentOpacity = 40;
         let isLegendMinimized = false;
         let availableColumns = [];
 
@@ -393,8 +383,15 @@
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            availableColumns = data.columns;
-                            updateColumnSelectors(data.columns);
+                            
+                            // Determinar tipo de usuario y configurar interfaz
+                            const isRaspiUser = data.isRaspiUser;
+                            if (isRaspiUser) {
+                                // Configurar interfaz para usuario Raspi
+                                document.querySelector('.pernos-selector').style.display = 'none';
+                                document.getElementById('zonasBtn').style.display = 'none';
+                            }
+                            
                             createChart(data.fechas, data);
                             realTimeInterval = setInterval(fetchRealTimeData, 3000);
                         }
@@ -488,7 +485,7 @@
             }
 
             // Verificar si los datos son para el usuario Raspi
-            const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
+            const isRaspiUser = datos.isRaspiUser;
 
             // Configurar escala Y según el usuario
             const yAxisConfig = isRaspiUser ? {
@@ -497,7 +494,7 @@
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: 2000,  // Nueva escala para usuario Raspi
+                max: 2000,
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -509,7 +506,7 @@
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: 200,  // Escala original para otros usuarios
+                max: 200,
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -527,9 +524,10 @@
                     tension: 0.4
                 }
             ] : [
+                // Datasets originales para usuarios normales
                 {
                     label: 'Dato 1',
-                    data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_1,
                     borderColor: 'rgba(0, 255, 255, 1)',
                     backgroundColor: 'rgba(0, 255, 255, 0.1)',
                     borderWidth: 2,
@@ -537,7 +535,7 @@
                 },
                 {
                     label: 'Dato 2',
-                    data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_2,
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     borderWidth: 2,
@@ -545,7 +543,7 @@
                 },
                 {
                     label: 'Dato 3',
-                    data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_3,
                     borderColor: 'rgba(255, 206, 86, 1)',
                     backgroundColor: 'rgba(255, 206, 86, 0.1)',
                     borderWidth: 2,
@@ -553,7 +551,7 @@
                 },
                 {
                     label: 'Dato 4',
-                    data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_4,
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     borderWidth: 2,
@@ -561,7 +559,7 @@
                 },
                 {
                     label: 'Dato 5',
-                    data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
+                    data: datos.perno_5,
                     borderColor: 'rgba(153, 102, 255, 1)',
                     backgroundColor: 'rgba(153, 102, 255, 0.1)',
                     borderWidth: 2,
@@ -579,16 +577,10 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     events: [],
-                    hover: {
-                        mode: null
-                    },
+                    hover: { mode: null },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            enabled: false
-                        },
+                        legend: { display: false },
+                        tooltip: { enabled: false },
                         annotation: {
                             annotations: isRaspiUser ? {} : {
                                 // Zonas solo para usuarios normales
