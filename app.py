@@ -139,14 +139,14 @@ def get_db_data():
             else:
                 # Para la tabla, mostrar las columnas necesarias incluyendo el número
                 df_display = df[['Numero', 'Fecha', 'Dato 1']].copy()
-                df_display.columns = ['N°', 'Fecha', 'Medición']
-                df_display['Medición'] = df_display['Medición'].apply(lambda x: float(f"{x:.2f}"))
+                df_display.columns = ['N°', 'Fecha', 'Perno 1']
+                df_display['Perno 1'] = df_display['Perno 1'].apply(lambda x: float(f"{x:.2f}"))
                 
                 # Ordenar por fecha descendente
                 df_display = df_display.sort_values('Fecha', ascending=False)
                 
                 # Obtener el último valor
-                ultimo_valor = df_display.iloc[0]['Medición']
+                ultimo_valor = df_display.iloc[0]['Perno 1']
                 
                 # Crear el HTML de la tabla con el último valor
                 html_tabla = f"""
