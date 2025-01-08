@@ -355,17 +355,26 @@
         let tableVisible = false;
         let isRealTime = false;
         let realTimeInterval = null;
-        const MAX_POINTS = 50;
+        const MAX_POINTS = 50; // Máximo número de puntos a mostrar en tiempo real
         let lastTimestamp = null;
         let zonasConfig = {
-            trabajo: { min: 115, max: 175 },
-            observacion: { min: 90, max: 115 },
-            critica: { min: 0, max: 90 }
+            trabajo: {
+                min: 115,
+                max: 175
+            },
+            observacion: {
+                min: 90,
+                max: 115
+            },
+            critica: {
+                min: 0,
+                max: 90
+            }
         };
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
-        let currentOpacity = 40;
+        let selectedRaspberries = new Set();
+        let currentOpacity = 40; // Valor inicial de opacidad
         let isLegendMinimized = false;
-        let availableColumns = [];
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -377,23 +386,14 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
-                
+                // Iniciar con los últimos datos
                 fetch('/data?format=json&limit=1')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            
-                            // Determinar tipo de usuario y configurar interfaz
-                            const isRaspiUser = data.isRaspiUser;
-                            if (isRaspiUser) {
-                                // Configurar interfaz para usuario Raspi
-                                document.querySelector('.pernos-selector').style.display = 'none';
-                                document.getElementById('zonasBtn').style.display = 'none';
-                            }
-                            
-                            createChart(data.fechas, data);
-                            realTimeInterval = setInterval(fetchRealTimeData, 3000);
+                            // Iniciar las actualizaciones periódicas
+                            realTimeInterval = setInterval(fetchRealTimeData, 3000); // Actualizar cada 3 segundos
                         }
                     });
             } else {
@@ -485,7 +485,7 @@
             }
 
             // Verificar si los datos son para el usuario Raspi
-            const isRaspiUser = datos.isRaspiUser;
+            const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
 
             // Configurar escala Y según el usuario
             const yAxisConfig = isRaspiUser ? {
@@ -494,7 +494,7 @@
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: 2000,
+                max: 2000,  // Nueva escala para usuario Raspi
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -506,7 +506,7 @@
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: 200,
+                max: 200,  // Escala original para otros usuarios
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -524,10 +524,9 @@
                     tension: 0.4
                 }
             ] : [
-                // Datasets originales para usuarios normales
                 {
                     label: 'Dato 1',
-                    data: datos.perno_1,
+                    data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
                     borderColor: 'rgba(0, 255, 255, 1)',
                     backgroundColor: 'rgba(0, 255, 255, 0.1)',
                     borderWidth: 2,
@@ -535,7 +534,7 @@
                 },
                 {
                     label: 'Dato 2',
-                    data: datos.perno_2,
+                    data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     borderWidth: 2,
@@ -543,7 +542,7 @@
                 },
                 {
                     label: 'Dato 3',
-                    data: datos.perno_3,
+                    data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
                     borderColor: 'rgba(255, 206, 86, 1)',
                     backgroundColor: 'rgba(255, 206, 86, 0.1)',
                     borderWidth: 2,
@@ -551,7 +550,7 @@
                 },
                 {
                     label: 'Dato 4',
-                    data: datos.perno_4,
+                    data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     borderWidth: 2,
@@ -559,7 +558,7 @@
                 },
                 {
                     label: 'Dato 5',
-                    data: datos.perno_5,
+                    data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
                     borderColor: 'rgba(153, 102, 255, 1)',
                     backgroundColor: 'rgba(153, 102, 255, 0.1)',
                     borderWidth: 2,
@@ -576,11 +575,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    events: [],
-                    hover: { mode: null },
                     plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false },
+                        legend: {
+                            display: false
+                        },
                         annotation: {
                             annotations: isRaspiUser ? {} : {
                                 // Zonas solo para usuarios normales
@@ -721,9 +719,14 @@
             fetch(chartUrl)
                 .then(response => response.json())
                 .then(data => {
-                    availableColumns = data.columns;
-                    updateColumnSelectors(data.columns);
-                    createChart(data.fechas, data);
+                    createChart(data.fechas, {
+                        perno_1: data.perno_1,
+                        perno_2: data.perno_2,
+                        perno_3: data.perno_3,
+                        perno_4: data.perno_4,
+                        perno_5: data.perno_5
+                    });
+                    updateChartVisibility();
                 });
         }
 
@@ -935,76 +938,6 @@
             annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
             
             chart.update('none');
-        }
-
-        function updateColumnSelectors(columns) {
-            const container = document.querySelector('.checkbox-group');
-            container.innerHTML = ''; // Limpiar contenedor existente
-            
-            // Agregar checkbox "Todos" solo si hay más de una columna
-            if (columns.length > 1) {
-                const allLabel = document.createElement('label');
-                allLabel.innerHTML = `
-                    <input type="checkbox" id="selectAll" checked onclick="toggleAllColumns()">
-                    Todos
-                `;
-                container.appendChild(allLabel);
-            }
-            
-            // Crear checkbox para cada columna
-            columns.forEach((column, index) => {
-                const label = document.createElement('label');
-                label.innerHTML = `
-                    <input type="checkbox" class="column-checkbox" 
-                           data-column="${index + 1}" checked 
-                           onclick="toggleColumn(${index + 1})">
-                    ${column}
-                `;
-                container.appendChild(label);
-            });
-        }
-
-        function toggleColumn(columnNum) {
-            const checkbox = document.querySelector(`.column-checkbox[data-column="${columnNum}"]`);
-            if (checkbox.checked) {
-                selectedPernos.add(columnNum);
-            } else {
-                selectedPernos.delete(columnNum);
-                document.getElementById('selectAll')?.checked = false;
-            }
-            
-            if (chart) {
-                chart.data.datasets.forEach((dataset, index) => {
-                    if (index < availableColumns.length) {
-                        dataset.hidden = !selectedPernos.has(index + 1);
-                    }
-                });
-                chart.update();
-            }
-        }
-
-        function toggleAllColumns() {
-            const selectAll = document.getElementById('selectAll');
-            const columnCheckboxes = document.querySelectorAll('.column-checkbox');
-            
-            columnCheckboxes.forEach(checkbox => {
-                checkbox.checked = selectAll.checked;
-                const columnNum = parseInt(checkbox.dataset.column);
-                if (selectAll.checked) {
-                    selectedPernos.add(columnNum);
-                } else {
-                    selectedPernos.delete(columnNum);
-                }
-            });
-            
-            if (chart) {
-                chart.data.datasets.forEach((dataset, index) => {
-                    if (index < availableColumns.length) {
-                        dataset.hidden = !selectAll.checked;
-                    }
-                });
-                chart.update();
-            }
         }
     </script>
 </body>
