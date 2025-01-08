@@ -137,11 +137,11 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
-                # Para la tabla, mostrar solo datos válidos
-                df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
-                df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
+                # Para la tabla, mostrar solo las columnas necesarias
+                df = df[['Fecha', 'Dato 1']]  # Removido 'Numero' e 'ID'
+                df.columns = ['Fecha', 'Medición']  # Renombrar columnas
                 df['Medición'] = df['Dato 1'].apply(lambda x: float(f"{x:.2f}"))
-                df = df.sort_values('Numero', ascending=False)
+                df = df.sort_values('Fecha', ascending=False)  # Ordenar por fecha más reciente
                 return df.to_html(classes='table table-striped', index=False)
         else:
             if format_type == 'json':
