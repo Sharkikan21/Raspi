@@ -96,7 +96,7 @@ def get_db_data():
                 return jsonify({'error': 'Invalid date format'}), 400
 
         # Ordenar por fecha
-        base_query += ' ORDER BY fecha DESC'  # Cambiado de ASC a DESC
+        base_query += ' ORDER BY fecha'  # Cambiado de DESC a ASC para mantener el orden cronológico
 
         # Solo aplicar límites en tiempo real
         if not fecha_inicio and not fecha_fin:
@@ -134,11 +134,10 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
-                # Para la tabla, ordenar por Numero en orden descendente
+                # Seleccionar solo las columnas relevantes para Raspi, incluyendo Numero e ID
                 df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
                 df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
                 df['Medición'] = df['Medición'].apply(lambda x: float(f"{x:.2f}"))
-                df = df.sort_values('Numero', ascending=False)  # Ordenar por Numero descendente
                 return df.to_html(classes='table table-striped', index=False)
         else:
             # Código existente para otros usuarios
