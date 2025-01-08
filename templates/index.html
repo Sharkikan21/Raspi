@@ -488,17 +488,17 @@
                 chart.destroy();
             }
 
-            // Verificar si los datos son para el usuario Raspi
-            const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
+            // Verificar si los datos son para el usuario test
+            const isTestUser = !datos.perno_2;
 
-            // Configurar escala Y según el usuario
+            // Configurar escala Y (ahora siempre de 0 a 200)
             const yAxisConfig = {
                 title: {
                     display: true,
                     text: 'Tensión (KLBF)'
                 },
                 min: 0,
-                max: isRaspiUser ? 2000 : 200,
+                max: 200,  // Fijado a 200 para todos los usuarios
                 ticks: {
                     callback: function(value) {
                         return Math.floor(value * 100) / 100;
@@ -506,7 +506,7 @@
                 }
             };
 
-            const datasets = isRaspiUser ? [
+            const datasets = isTestUser ? [
                 {
                     label: 'Medición',
                     data: datos.medicion.map(v => Math.floor(v * 100) / 100),
@@ -573,7 +573,7 @@
                         legend: { display: false },
                         tooltip: { enabled: false },
                         annotation: {
-                            annotations: isRaspiUser ? {} : {
+                            annotations: isTestUser ? {} : {
                                 zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
@@ -619,7 +619,7 @@
                 }
             });
 
-            if (!isRaspiUser) {
+            if (!isTestUser) {
                 createZoneLegend();
             }
         }

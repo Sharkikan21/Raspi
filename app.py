@@ -138,11 +138,11 @@ def get_db_data():
                 return jsonify(data)
             else:
                 # Para la tabla, mostrar solo las columnas necesarias
-                df = df[['Fecha', 'Dato 1']]  # Removido 'Numero' e 'ID'
-                df.columns = ['Fecha', 'Medición']  # Renombrar columnas
-                df['Medición'] = df['Dato 1'].apply(lambda x: float(f"{x:.2f}"))
-                df = df.sort_values('Fecha', ascending=False)  # Ordenar por fecha más reciente
-                return df.to_html(classes='table table-striped', index=False)
+                df_display = df[['Fecha', 'Dato 1']].copy()  # Crear una copia para evitar SettingWithCopyWarning
+                df_display.columns = ['Fecha', 'Medición']  # Renombrar columnas
+                df_display['Medición'] = df_display['Medición'].apply(lambda x: float(f"{x:.2f}"))
+                df_display = df_display.sort_values('Fecha', ascending=False)  # Ordenar por fecha más reciente
+                return df_display.to_html(classes='table table-striped', index=False)
         else:
             # Eliminar las columnas que solo contienen NaN
             numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
@@ -155,7 +155,7 @@ def get_db_data():
             valid_columns.append('ID')  # Agregar ID al final
             
             # Filtrar el DataFrame para mantener solo las columnas válidas
-            df = df[valid_columns]
+            df = df[valid_columns].copy()  # Crear una copia para evitar problemas de vista
             
             if format_type == 'json':
                 data = {
