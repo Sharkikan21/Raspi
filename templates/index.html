@@ -487,6 +487,33 @@
             // Verificar si los datos son para el usuario Raspi
             const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
 
+            // Configurar escala Y según el usuario
+            const yAxisConfig = isRaspiUser ? {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: 2000,  // Nueva escala para usuario Raspi
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            } : {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: 200,  // Escala original para otros usuarios
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            };
+
             const datasets = isRaspiUser ? [
                 {
                     label: 'Medición',
@@ -553,7 +580,8 @@
                             display: false
                         },
                         annotation: {
-                            annotations: {
+                            annotations: isRaspiUser ? {} : {
+                                // Zonas solo para usuarios normales
                                 zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
@@ -594,19 +622,7 @@
                                 maxTicksLimit: 10
                             }
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200,
-                            ticks: {
-                                callback: function(value) {
-                                    return Math.floor(value * 100) / 100;
-                                }
-                            }
-                        }
+                        y: yAxisConfig
                     }
                 }
             });
