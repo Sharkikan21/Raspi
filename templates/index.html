@@ -575,9 +575,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    events: [],
+                    hover: {
+                        mode: null
+                    },
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            enabled: false
                         },
                         annotation: {
                             annotations: isRaspiUser ? {} : {
