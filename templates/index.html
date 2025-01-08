@@ -386,14 +386,20 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
+                
                 // Iniciar con los últimos datos
-                fetch('/data?format=json&limit=1')
+                fetch('/data?format=json&limit=50')  // Aumentamos el límite inicial para tener más datos
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            // Iniciar las actualizaciones periódicas
-                            realTimeInterval = setInterval(fetchRealTimeData, 3000); // Actualizar cada 3 segundos
+                            // Asegurarnos de que el gráfico se crea/actualiza correctamente
+                            if (!chart) {
+                                createChart(data.fechas, data);
+                            } else {
+                                updateRealTimeChart(data);
+                            }
+                            realTimeInterval = setInterval(fetchRealTimeData, 3000);
                         }
                     });
             } else {
@@ -402,11 +408,14 @@
                 filterControls.classList.remove('disabled');
                 if (realTimeInterval) {
                     clearInterval(realTimeInterval);
+                    realTimeInterval = null;
                 }
             }
         }
 
         function fetchRealTimeData() {
+            if (!isRealTime) return;  // Verificar si aún estamos en modo tiempo real
+            
             let url = '/data?format=json';
             if (lastTimestamp) {
                 url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
@@ -448,36 +457,31 @@
 
             if (newLabels.length === 0) return; // No hay nuevos datos
 
-            // Verificar si es usuario Raspi
-            const isRaspiUser = newData.medicion !== undefined;
+            // Verificar si es usuario test
+            const isTestUser = newData.isRaspiUser;
 
-            if (isRaspiUser) {
-                // Actualizar datos para usuario Raspi
+            if (isTestUser) {
+                // Actualizar datos para usuario test
                 const existingData = chart.data.datasets[0].data;
-                const newDataPoints = newData.medicion.filter((value, index) => {
-                    // Solo incluir puntos que no estén en las etiquetas existentes y sean distintos de cero
-                    return !existingLabels.includes(newData.fechas[index]) && value !== 0;
-                });
-                const newValidLabels = newData.fechas.filter((fecha, index) => 
-                    !existingLabels.includes(fecha) && newData.medicion[index] !== 0
-                );
+                const newDataPoints = newData.medicion;
                 
-                chart.data.labels = [...existingLabels, ...newValidLabels].slice(-MAX_POINTS);
+                // Actualizar datos manteniendo solo los últimos MAX_POINTS
+                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
                 chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
             } else {
                 // Actualizar datos para usuario normal
                 for (let i = 0; i < 5; i++) {
                     const pernoKey = `perno_${i+1}`;
-                    const existingData = chart.data.datasets[i].data;
-                    const newDataPoints = newData[pernoKey].filter((_, index) => 
-                        !existingLabels.includes(newData.fechas[index])
-                    );
-                    chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                    if (newData[pernoKey]) {
+                        const existingData = chart.data.datasets[i].data;
+                        const newDataPoints = newData[pernoKey];
+                        chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                    }
                 }
                 chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
             }
 
-            chart.update('none');
+            chart.update();
         }
 
         function createChart(fechas, datos) {
