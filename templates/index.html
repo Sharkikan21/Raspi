@@ -386,7 +386,16 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
-                realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                // Iniciar con los últimos datos
+                fetch('/data?format=json&limit=1')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.fechas && data.fechas.length > 0) {
+                            lastTimestamp = data.fechas[data.fechas.length - 1];
+                            // Iniciar las actualizaciones periódicas
+                            realTimeInterval = setInterval(fetchRealTimeData, 3000); // Actualizar cada 3 segundos
+                        }
+                    });
             } else {
                 btn.textContent = 'Iniciar Tiempo Real';
                 btn.classList.remove('active');
@@ -397,70 +406,62 @@
             }
         }
 
-        function startRealTimeUpdates() {
-            fetch('/data?format=json&limit=1')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.fechas.length > 0) {
-                        lastTimestamp = data.fechas[0];
-                        createChart(data.fechas, {
-                            perno_1: data.perno_1,
-                            perno_2: data.perno_2,
-                            perno_3: data.perno_3,
-                            perno_4: data.perno_4,
-                            perno_5: data.perno_5
-                        });
-                    }
-                    
-                    if (realTimeInterval) {
-                        clearInterval(realTimeInterval);
-                    }
-                    realTimeInterval = setInterval(fetchRealTimeData, 1000);
-                });
-        }
-
-        function stopRealTimeUpdates() {
-            if (realTimeInterval) {
-                clearInterval(realTimeInterval);
-                realTimeInterval = null;
-            }
-            lastTimestamp = null;
-        }
-
         function fetchRealTimeData() {
             let url = '/data?format=json';
             if (lastTimestamp) {
-                url += `&after_timestamp=${lastTimestamp}`;
+                url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
             }
             
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.fechas.length > 0) {
+                    if (data.fechas && data.fechas.length > 0) {
                         lastTimestamp = data.fechas[data.fechas.length - 1];
                         updateRealTimeChart(data);
+                        if (tableVisible) {
+                            // Actualizar también la tabla si está visible
+                            fetch('/data')
+                                .then(response => response.text())
+                                .then(html => {
+                                    document.getElementById('csv-table').innerHTML = html;
+                                });
+                        }
                     }
+                })
+                .catch(error => {
+                    console.error('Error fetching real-time data:', error);
+                    // Si hay un error, detener el tiempo real
+                    toggleRealTime();
                 });
         }
 
         function updateRealTimeChart(newData) {
             if (!chart) {
-                createChart(newData.fechas, {
-                    perno_1: newData.perno_1,
-                    perno_2: newData.perno_2,
-                    perno_3: newData.perno_3,
-                    perno_4: newData.perno_4,
-                    perno_5: newData.perno_5
-                });
-            } else {
-                const existingLabels = chart.data.labels;
+                createChart(newData.fechas, newData);
+                return;
+            }
 
-                // Filtrar datos duplicados
-                const newLabels = newData.fechas.filter(fecha => 
-                    !existingLabels.includes(fecha)
+            const existingLabels = chart.data.labels;
+            const newLabels = newData.fechas.filter(fecha => 
+                !existingLabels.includes(fecha)
+            );
+
+            if (newLabels.length === 0) return; // No hay nuevos datos
+
+            // Verificar si es usuario Raspi
+            const isRaspiUser = newData.medicion !== undefined;
+
+            if (isRaspiUser) {
+                // Actualizar datos para usuario Raspi
+                const existingData = chart.data.datasets[0].data;
+                const newDataPoints = newData.medicion.filter((_, index) => 
+                    !existingLabels.includes(newData.fechas[index])
                 );
-
-                // Actualizar datos para cada perno
+                
+                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
+                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+            } else {
+                // Actualizar datos para usuario normal
                 for (let i = 0; i < 5; i++) {
                     const pernoKey = `perno_${i+1}`;
                     const existingData = chart.data.datasets[i].data;
@@ -469,10 +470,10 @@
                     );
                     chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
                 }
-
                 chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
-                chart.update('none');
             }
+
+            chart.update('none');
         }
 
         function createChart(fechas, datos) {

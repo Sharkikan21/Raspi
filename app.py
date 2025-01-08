@@ -134,9 +134,9 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
-                # Seleccionar solo las columnas relevantes para Raspi
-                df = df[['Fecha', 'Dato 1']]
-                df.columns = ['Fecha', 'Medición']
+                # Seleccionar solo las columnas relevantes para Raspi, incluyendo Numero e ID
+                df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
+                df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
                 df['Medición'] = df['Medición'].apply(lambda x: float(f"{x:.2f}"))
                 return df.to_html(classes='table table-striped', index=False)
         else:
