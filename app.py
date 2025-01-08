@@ -126,11 +126,12 @@ def get_db_data():
         df = df.rename(columns=column_mapping)
 
         if username == 'Raspi':
-            # Para el usuario Raspi, solo mostrar una medición
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'medicion': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                    'medicion': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'columns': ['Medición'],  # Información de columnas disponibles
+                    'isRaspiUser': True
                 }
                 return jsonify(data)
             else:
@@ -141,16 +142,22 @@ def get_db_data():
                 df = df.sort_values('Numero', ascending=False)  # Ordenar por Numero descendente
                 return df.to_html(classes='table table-striped', index=False)
         else:
-            # Código existente para otros usuarios
             if format_type == 'json':
+                # Determinar qué columnas tienen datos válidos
+                valid_columns = []
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'perno_1': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_2': df['Dato 2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_3': df['Dato 3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_4': df['Dato 4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_5': df['Dato 5'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                    'isRaspiUser': False,
+                    'columns': []  # Se llenará con las columnas válidas
                 }
+                
+                for i in range(1, 6):
+                    column = f'Dato {i}'
+                    if not df[column].isna().all():  # Si la columna tiene datos
+                        valid_columns.append(column)
+                        data[f'perno_{i}'] = df[column].apply(lambda x: float(f"{x:.2f}")).tolist()
+                
+                data['columns'] = valid_columns
                 return jsonify(data)
             else:
                 # Truncar todas las columnas numéricas a 2 decimales

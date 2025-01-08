@@ -375,6 +375,7 @@
         let selectedRaspberries = new Set();
         let currentOpacity = 40; // Valor inicial de opacidad
         let isLegendMinimized = false;
+        let availableColumns = [];
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -386,14 +387,16 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
-                // Iniciar con los últimos datos
+                
                 fetch('/data?format=json&limit=1')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            // Iniciar las actualizaciones periódicas
-                            realTimeInterval = setInterval(fetchRealTimeData, 3000); // Actualizar cada 3 segundos
+                            availableColumns = data.columns;
+                            updateColumnSelectors(data.columns);
+                            createChart(data.fechas, data);
+                            realTimeInterval = setInterval(fetchRealTimeData, 3000);
                         }
                     });
             } else {
@@ -726,14 +729,9 @@
             fetch(chartUrl)
                 .then(response => response.json())
                 .then(data => {
-                    createChart(data.fechas, {
-                        perno_1: data.perno_1,
-                        perno_2: data.perno_2,
-                        perno_3: data.perno_3,
-                        perno_4: data.perno_4,
-                        perno_5: data.perno_5
-                    });
-                    updateChartVisibility();
+                    availableColumns = data.columns;
+                    updateColumnSelectors(data.columns);
+                    createChart(data.fechas, data);
                 });
         }
 
@@ -945,6 +943,76 @@
             annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
             
             chart.update('none');
+        }
+
+        function updateColumnSelectors(columns) {
+            const container = document.querySelector('.checkbox-group');
+            container.innerHTML = ''; // Limpiar contenedor existente
+            
+            // Agregar checkbox "Todos" solo si hay más de una columna
+            if (columns.length > 1) {
+                const allLabel = document.createElement('label');
+                allLabel.innerHTML = `
+                    <input type="checkbox" id="selectAll" checked onclick="toggleAllColumns()">
+                    Todos
+                `;
+                container.appendChild(allLabel);
+            }
+            
+            // Crear checkbox para cada columna
+            columns.forEach((column, index) => {
+                const label = document.createElement('label');
+                label.innerHTML = `
+                    <input type="checkbox" class="column-checkbox" 
+                           data-column="${index + 1}" checked 
+                           onclick="toggleColumn(${index + 1})">
+                    ${column}
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        function toggleColumn(columnNum) {
+            const checkbox = document.querySelector(`.column-checkbox[data-column="${columnNum}"]`);
+            if (checkbox.checked) {
+                selectedPernos.add(columnNum);
+            } else {
+                selectedPernos.delete(columnNum);
+                document.getElementById('selectAll')?.checked = false;
+            }
+            
+            if (chart) {
+                chart.data.datasets.forEach((dataset, index) => {
+                    if (index < availableColumns.length) {
+                        dataset.hidden = !selectedPernos.has(index + 1);
+                    }
+                });
+                chart.update();
+            }
+        }
+
+        function toggleAllColumns() {
+            const selectAll = document.getElementById('selectAll');
+            const columnCheckboxes = document.querySelectorAll('.column-checkbox');
+            
+            columnCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                const columnNum = parseInt(checkbox.dataset.column);
+                if (selectAll.checked) {
+                    selectedPernos.add(columnNum);
+                } else {
+                    selectedPernos.delete(columnNum);
+                }
+            });
+            
+            if (chart) {
+                chart.data.datasets.forEach((dataset, index) => {
+                    if (index < availableColumns.length) {
+                        dataset.hidden = !selectAll.checked;
+                    }
+                });
+                chart.update();
+            }
         }
     </script>
 </body>
