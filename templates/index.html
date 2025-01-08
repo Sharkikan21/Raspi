@@ -387,8 +387,21 @@
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
                 
-                // Iniciar con los últimos datos
-                fetch('/data?format=json&limit=50')  // Aumentamos el límite inicial para tener más datos
+                // Obtener el último timestamp de la tabla actual
+                const tableRows = document.querySelector('#csv-table table tbody').rows;
+                if (tableRows.length > 0) {
+                    // Obtener la fecha del primer row (el más reciente)
+                    const lastDate = tableRows[0].cells[1].textContent; // Índice 1 para la columna Fecha
+                    lastTimestamp = lastDate;
+                }
+                
+                // Iniciar con los datos desde el último timestamp
+                let url = '/data?format=json&limit=50';
+                if (lastTimestamp) {
+                    url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
+                }
+                
+                fetch(url)
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
@@ -401,6 +414,12 @@
                             }
                             realTimeInterval = setInterval(fetchRealTimeData, 3000);
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error starting real-time:', error);
+                        btn.textContent = 'Iniciar Tiempo Real';
+                        btn.classList.remove('active');
+                        filterControls.classList.remove('disabled');
                     });
             } else {
                 btn.textContent = 'Iniciar Tiempo Real';
