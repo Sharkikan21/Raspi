@@ -52,6 +52,13 @@ def get_db_data():
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
 
+        # Obtener el nombre de usuario para verificar si es "Raspi"
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM users WHERE id = %s", (session['user_id'],))
+        username = cursor.fetchone()[0]
+        cursor.close()
+
         # Base query según el rol del usuario
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
@@ -105,22 +112,51 @@ def get_db_data():
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
-        if format_type == 'json':
-            data = {
-                'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'perno_1': df['perno_1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_2': df['perno_2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_3': df['perno_3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_4': df['perno_4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_5': df['perno_5'].apply(lambda x: float(f"{x:.2f}")).tolist()
-            }
-            return jsonify(data)
+        # Renombrar las columnas
+        column_mapping = {
+            'id': 'Numero',
+            'fecha': 'Fecha',
+            'perno_1': 'Dato 1',
+            'perno_2': 'Dato 2',
+            'perno_3': 'Dato 3',
+            'perno_4': 'Dato 4',
+            'perno_5': 'Dato 5',
+            'raspberry_id': 'ID'
+        }
+        df = df.rename(columns=column_mapping)
+
+        if username == 'Raspi':
+            # Para el usuario Raspi, solo mostrar una medición
+            if format_type == 'json':
+                data = {
+                    'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+                    'medicion': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                }
+                return jsonify(data)
+            else:
+                # Seleccionar solo las columnas relevantes para Raspi
+                df = df[['Fecha', 'Dato 1']]
+                df.columns = ['Fecha', 'Medición']
+                df['Medición'] = df['Medición'].apply(lambda x: float(f"{x:.2f}"))
+                return df.to_html(classes='table table-striped', index=False)
         else:
-            # Truncar todas las columnas numéricas a 2 decimales
-            numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
-            for col in numeric_columns:
-                df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
-            return df.to_html(classes='table table-striped', index=False)
+            # Código existente para otros usuarios
+            if format_type == 'json':
+                data = {
+                    'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+                    'perno_1': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_2': df['Dato 2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_3': df['Dato 3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_4': df['Dato 4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_5': df['Dato 5'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                }
+                return jsonify(data)
+            else:
+                # Truncar todas las columnas numéricas a 2 decimales
+                numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
+                for col in numeric_columns:
+                    df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
+                return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
         print(f"Database error: {e}")

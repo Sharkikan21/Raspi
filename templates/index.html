@@ -276,7 +276,7 @@
         <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
         
         <div class="pernos-selector">
-            <p>Seleccionar Pernos:</p>
+            <p>Seleccionar Datos:</p>
             <div class="checkbox-group">
                 <label>
                     <input type="checkbox" id="selectAll" checked onclick="toggleAllPernos()">
@@ -284,23 +284,23 @@
                 </label>
                 <label>
                     <input type="checkbox" class="perno-checkbox" data-perno="1" checked onclick="togglePerno(1)">
-                    Perno 1
+                    Dato 1
                 </label>
                 <label>
                     <input type="checkbox" class="perno-checkbox" data-perno="2" checked onclick="togglePerno(2)">
-                    Perno 2
+                    Dato 2
                 </label>
                 <label>
                     <input type="checkbox" class="perno-checkbox" data-perno="3" checked onclick="togglePerno(3)">
-                    Perno 3
+                    Dato 3
                 </label>
                 <label>
                     <input type="checkbox" class="perno-checkbox" data-perno="4" checked onclick="togglePerno(4)">
-                    Perno 4
+                    Dato 4
                 </label>
                 <label>
                     <input type="checkbox" class="perno-checkbox" data-perno="5" checked onclick="togglePerno(5)">
-                    Perno 5
+                    Dato 5
                 </label>
             </div>
         </div>
@@ -483,52 +483,66 @@
                 chart.destroy();
             }
 
+            // Verificar si los datos son para el usuario Raspi
+            const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
+
+            const datasets = isRaspiUser ? [
+                {
+                    label: 'Medición',
+                    data: datos.medicion.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ] : [
+                {
+                    label: 'Dato 1',
+                    data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 2',
+                    data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 3',
+                    data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 4',
+                    data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 5',
+                    data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ];
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [
-                        {
-                            label: 'Perno 1',
-                            data: datos.perno_1.map(v => Math.floor(v * 100) / 100),
-                            borderColor: 'rgba(0, 255, 255, 1)',
-                            backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Perno 2',
-                            data: datos.perno_2.map(v => Math.floor(v * 100) / 100),
-                            borderColor: 'rgba(255, 99, 132, 1)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Perno 3',
-                            data: datos.perno_3.map(v => Math.floor(v * 100) / 100),
-                            borderColor: 'rgba(255, 206, 86, 1)',
-                            backgroundColor: 'rgba(255, 206, 86, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Perno 4',
-                            data: datos.perno_4.map(v => Math.floor(v * 100) / 100),
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Perno 5',
-                            data: datos.perno_5.map(v => Math.floor(v * 100) / 100),
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            backgroundColor: 'rgba(153, 102, 255, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
@@ -596,7 +610,9 @@
                 }
             });
 
-            createZoneLegend();
+            if (!isRaspiUser) {
+                createZoneLegend();
+            }
         }
 
         function createZoneLegend() {
