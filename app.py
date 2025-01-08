@@ -126,36 +126,35 @@ def get_db_data():
         df = df.rename(columns=column_mapping)
 
         if username == 'Raspi':
-            # Para el usuario Raspi, solo mostrar una medición
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'medicion': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                    'medicion': df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'isRaspiUser': True
                 }
                 return jsonify(data)
             else:
-                # Seleccionar solo las columnas relevantes para Raspi, incluyendo Numero e ID
                 df = df[['Numero', 'Fecha', 'Dato 1', 'ID']]
                 df.columns = ['Numero', 'Fecha', 'Medición', 'ID']
-                df['Medición'] = df['Medición'].apply(lambda x: float(f"{x:.2f}"))
+                df['Medición'] = df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}"))
+                df = df.sort_values('Numero', ascending=False)
                 return df.to_html(classes='table table-striped', index=False)
         else:
-            # Código existente para otros usuarios
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'perno_1': df['Dato 1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_2': df['Dato 2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_3': df['Dato 3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_4': df['Dato 4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                    'perno_5': df['Dato 5'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                    'perno_1': df['Dato 1'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_2': df['Dato 2'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_3': df['Dato 3'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_4': df['Dato 4'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'perno_5': df['Dato 5'].fillna(0).apply(lambda x: float(f"{x:.2f}")).tolist(),
+                    'isRaspiUser': False
                 }
                 return jsonify(data)
             else:
-                # Truncar todas las columnas numéricas a 2 decimales
                 numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
                 for col in numeric_columns:
-                    df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
+                    df[col] = df[col].fillna(0).apply(lambda x: float(f"{x:.2f}"))
                 return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:

@@ -487,6 +487,21 @@
             // Verificar si los datos son para el usuario Raspi
             const isRaspiUser = !datos.perno_2; // Si no existe perno_2, es usuario Raspi
 
+            // Configurar escala Y según el usuario
+            const yAxisConfig = {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: isRaspiUser ? 2000 : 200,
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            };
+
             const datasets = isRaspiUser ? [
                 {
                     label: 'Medición',
@@ -548,12 +563,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    events: [],
+                    hover: { mode: null },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
+                        tooltip: { enabled: false },
                         annotation: {
-                            annotations: {
+                            annotations: isRaspiUser ? {} : {
                                 zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
@@ -594,19 +610,7 @@
                                 maxTicksLimit: 10
                             }
                         },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200,
-                            ticks: {
-                                callback: function(value) {
-                                    return Math.floor(value * 100) / 100;
-                                }
-                            }
-                        }
+                        y: yAxisConfig
                     }
                 }
             });
