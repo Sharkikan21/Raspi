@@ -52,7 +52,7 @@ def get_db_data():
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
 
-        # Obtener el nombre de usuario para verificar si es "Raspi"
+        # Obtener el nombre de usuario para verificar si es "test"
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT username FROM users WHERE id = %s", (session['user_id'],))
@@ -125,7 +125,7 @@ def get_db_data():
         }
         df = df.rename(columns=column_mapping)
 
-        if username == 'Raspi':
+        if username == 'test':
             # Filtrar datos que son distintos de cero y no son NaN
             df = df[df['Dato 1'].notna() & (df['Dato 1'] != 0)]
             
@@ -144,22 +144,34 @@ def get_db_data():
                 df = df.sort_values('Fecha', ascending=False)  # Ordenar por fecha más reciente
                 return df.to_html(classes='table table-striped', index=False)
         else:
+            # Eliminar las columnas que solo contienen NaN
+            numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
+            valid_columns = ['Numero', 'Fecha']  # Columnas que siempre queremos mantener
+            
+            # Agregar solo las columnas que tienen datos no-NaN
+            for col in numeric_columns:
+                if not df[col].isna().all():  # Si la columna tiene al menos un valor no-NaN
+                    valid_columns.append(col)
+            valid_columns.append('ID')  # Agregar ID al final
+            
+            # Filtrar el DataFrame para mantener solo las columnas válidas
+            df = df[valid_columns]
+            
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                    'perno_1': df['Dato 1'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
-                    'perno_2': df['Dato 2'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
-                    'perno_3': df['Dato 3'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
-                    'perno_4': df['Dato 4'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
-                    'perno_5': df['Dato 5'].fillna("").apply(lambda x: float(f"{x:.2f}") if x != "" else "").tolist(),
                     'isRaspiUser': False
                 }
+                # Agregar solo los datos de las columnas válidas
+                for col in valid_columns:
+                    if col in numeric_columns:
+                        data[f'perno_{col[-1]}'] = df[col].fillna("").apply(lambda x: float(f"{x:.2f}") if pd.notna(x) and x != 0 else "").tolist()
                 return jsonify(data)
             else:
                 # Para la tabla, dejar los NaN como espacios vacíos
-                numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
-                for col in numeric_columns:
-                    df[col] = df[col].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) and x != 0 else "")
+                for col in valid_columns:
+                    if col in numeric_columns:
+                        df[col] = df[col].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) and x != 0 else "")
                 return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
