@@ -869,7 +869,15 @@
             
             if (chart) {
                 const opacity = currentOpacity / 100;
+                
+                // Mantener el label del último valor
+                const ultimoValorLabel = chart.options.plugins.annotation.annotations.ultimoValorLabel;
+                
                 chart.options.plugins.annotation.annotations = {
+                    // Mantener el label del último valor
+                    ultimoValorLabel: ultimoValorLabel,
+                    
+                    // Actualizar las zonas
                     zonaTrabajoNormal: {
                         type: 'box',
                         xScaleID: 'x',
@@ -898,8 +906,8 @@
                         borderColor: 'transparent'
                     }
                 };
+                
                 chart.update();
-
                 createZoneLegend();
             }
         }
