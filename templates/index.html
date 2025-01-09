@@ -486,9 +486,9 @@
             // Actualizar la anotación del último valor
             chart.options.plugins.annotation.annotations.ultimoValorLabel = {
                 type: 'label',
-                xValue: 0,
+                xValue: newData.fechas.length - 1,
                 yValue: ultimoValor,
-                xAdjust: 10,
+                xAdjust: 60,
                 yAdjust: -30,
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
@@ -497,7 +497,7 @@
                     weight: 'bold'
                 },
                 position: {
-                    x: 'start',
+                    x: 'end',
                     y: 'top'
                 },
                 padding: 8
@@ -618,9 +618,9 @@
                                 // Agregar anotación para el último valor
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    xValue: 0,
+                                    xValue: fechas.length - 1,
                                     yValue: ultimoValor,
-                                    xAdjust: 10,
+                                    xAdjust: 60,
                                     yAdjust: -30,
                                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
@@ -629,7 +629,7 @@
                                         weight: 'bold'
                                     },
                                     position: {
-                                        x: 'start',
+                                        x: 'end',
                                         y: 'top'
                                     },
                                     padding: 8
