@@ -375,6 +375,7 @@
         let selectedRaspberries = new Set();
         let currentOpacity = 40; // Valor inicial de opacidad
         let isLegendMinimized = false;
+        let lastFetchedTimestamp = null;  // Variable global para almacenar el último timestamp
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -385,42 +386,27 @@
                 btn.textContent = 'Detener Tiempo Real';
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
-                lastTimestamp = null;
                 
-                // Obtener el último timestamp de la tabla actual
-                const tableRows = document.querySelector('#csv-table table tbody').rows;
-                if (tableRows.length > 0) {
-                    // Obtener la fecha del primer row (el más reciente)
-                    const lastDate = tableRows[0].cells[1].textContent; // Índice 1 para la columna Fecha
-                    lastTimestamp = lastDate;
-                }
-                
-                // Iniciar con los datos desde el último timestamp
-                let url = '/data?format=json&limit=50';
-                if (lastTimestamp) {
-                    url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
-                }
-                
-                fetch(url)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.fechas && data.fechas.length > 0) {
-                            lastTimestamp = data.fechas[data.fechas.length - 1];
-                            // Asegurarnos de que el gráfico se crea/actualiza correctamente
-                            if (!chart) {
+                // Hacer una única carga inicial completa si no hay datos
+                if (!chart) {
+                    fetch('/data?format=json&limit=50')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.fechas && data.fechas.length > 0) {
                                 createChart(data.fechas, data);
-                            } else {
-                                updateRealTimeChart(data);
+                                lastFetchedTimestamp = data.fechas[data.fechas.length - 1];
+                                realTimeInterval = setInterval(fetchNewData, 2000);
                             }
-                            realTimeInterval = setInterval(fetchRealTimeData, 2000);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error starting real-time:', error);
-                        btn.textContent = 'Iniciar Tiempo Real';
-                        btn.classList.remove('active');
-                        filterControls.classList.remove('disabled');
-                    });
+                        })
+                        .catch(error => {
+                            console.error('Error in initial load:', error);
+                            toggleRealTime();
+                        });
+                } else {
+                    // Si ya hay datos, solo actualizar desde el último timestamp
+                    lastFetchedTimestamp = chart.data.labels[chart.data.labels.length - 1];
+                    realTimeInterval = setInterval(fetchNewData, 2000);
+                }
             } else {
                 btn.textContent = 'Iniciar Tiempo Real';
                 btn.classList.remove('active');
@@ -432,35 +418,37 @@
             }
         }
 
-        function fetchRealTimeData() {
-            if (!isRealTime) return;  // Verificar si aún estamos en modo tiempo real
-            
-            let url = '/data?format=json';
-            if (lastTimestamp) {
-                url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
-            }
+        function fetchNewData() {
+            if (!isRealTime || !lastFetchedTimestamp) return;
+
+            const url = `/data?format=json&after_timestamp=${encodeURIComponent(lastFetchedTimestamp)}`;
             
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.fechas && data.fechas.length > 0) {
-                        lastTimestamp = data.fechas[data.fechas.length - 1];
                         updateRealTimeChart(data);
+                        lastFetchedTimestamp = data.fechas[data.fechas.length - 1];
+                        
+                        // Actualizar la tabla solo si hay nuevos datos y está visible
                         if (tableVisible) {
-                            // Actualizar también la tabla si está visible
-                            fetch('/data')
-                                .then(response => response.text())
-                                .then(html => {
-                                    document.getElementById('csv-table').innerHTML = html;
-                                });
+                            updateTable();
                         }
                     }
                 })
                 .catch(error => {
-                    console.error('Error fetching real-time data:', error);
-                    // Si hay un error, detener el tiempo real
+                    console.error('Error fetching new data:', error);
                     toggleRealTime();
                 });
+        }
+
+        function updateTable() {
+            fetch('/data')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('csv-table').innerHTML = html;
+                })
+                .catch(error => console.error('Error updating table:', error));
         }
 
         function updateRealTimeChart(newData) {
@@ -488,33 +476,29 @@
             ultimoValorLabel.content = [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
             ultimoValorLabel.yValue = ultimoValor;
 
-            // Mantener la animación suave solo para el desplazamiento horizontal
-            chart.options.animation = {
-                x: {
-                    duration: 0,  // Sin animación en X para un desplazamiento inmediato
-                    easing: 'linear'
-                },
-                y: false  // Desactivar animación en Y para mantener posición vertical
+            // Configurar la animación para que sea lo más suave posible
+            chart.options.animation = false;
+            chart.options.transitions = {
+                active: {
+                    animation: {
+                        duration: 0
+                    }
+                }
             };
 
-            // Actualizar datos manteniendo la posición vertical
+            // Actualizar datos sin recrear el gráfico
             if (isTestUser) {
-                const newDataPoints = newData.medicion.slice(-1);
                 const dataset = chart.data.datasets[0];
-                
-                // Desplazar datos manteniendo el máximo de puntos
-                dataset.data.push(...newDataPoints);
+                dataset.data.push(...newData.medicion.slice(-1));
                 if (dataset.data.length > MAX_POINTS) {
-                    dataset.data.shift();  // Eliminar el primer punto
+                    dataset.data.shift();
                 }
             } else {
                 for (let i = 0; i < 5; i++) {
                     const pernoKey = `perno_${i+1}`;
                     if (newData[pernoKey]) {
-                        const newDataPoints = newData[pernoKey].slice(-1);
                         const dataset = chart.data.datasets[i];
-                        
-                        dataset.data.push(...newDataPoints);
+                        dataset.data.push(...newData[pernoKey].slice(-1));
                         if (dataset.data.length > MAX_POINTS) {
                             dataset.data.shift();
                         }
@@ -522,32 +506,31 @@
                 }
             }
 
-            // Actualizar etiquetas de tiempo
+            // Actualizar etiquetas
             chart.data.labels.push(...newLabels);
             if (chart.data.labels.length > MAX_POINTS) {
                 chart.data.labels.shift();
             }
 
-            // Actualizar el gráfico con las nuevas configuraciones
+            // Actualizar el gráfico con configuración optimizada
             chart.update({
                 duration: 0,
-                easing: 'linear',
                 lazy: false,
-                mode: 'none'
+                easing: 'linear',
+                mode: 'none',
+                animations: false,
+                responsiveAnimationDuration: 0
             });
         }
 
         function createChart(fechas, datos) {
             const ctx = document.getElementById('myChart').getContext('2d');
-            const opacity = currentOpacity / 100;
             
             if (chart) {
                 chart.destroy();
             }
 
             const isTestUser = datos.isRaspiUser;
-            
-            // Obtener el último valor
             const ultimoValor = isTestUser ? 
                 datos.medicion[datos.medicion.length - 1] : 
                 datos.perno_1[datos.perno_1.length - 1];
@@ -619,84 +602,95 @@
                 }
             ];
 
+            // Agregar configuración para eliminar animaciones
+            const options = {
+                animation: false,
+                transitions: {
+                    active: {
+                        animation: {
+                            duration: 0
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                events: [],
+                hover: { mode: null },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                    annotation: {
+                        annotations: {
+                            // Agregar anotación para el último valor
+                            ultimoValorLabel: {
+                                type: 'label',
+                                xValue: fechas.length - 1,
+                                yValue: ultimoValor,
+                                xAdjust: -80,
+                                yAdjust: -30,
+                                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                },
+                                position: {
+                                    x: 'end',
+                                    y: 'top'
+                                },
+                                padding: 8
+                            },
+                            zonaTrabajoNormal: {
+                                type: 'box',
+                                xScaleID: 'x',
+                                yScaleID: 'y',
+                                yMin: zonasConfig.trabajo.min,
+                                yMax: zonasConfig.trabajo.max,
+                                backgroundColor: `rgba(0, 200, 0, ${currentOpacity / 100})`,
+                                borderColor: 'transparent'
+                            },
+                            zonaObservacion: {
+                                type: 'box',
+                                xScaleID: 'x',
+                                yScaleID: 'y',
+                                yMin: zonasConfig.observacion.min,
+                                yMax: zonasConfig.observacion.max,
+                                backgroundColor: `rgba(255, 255, 0, ${currentOpacity / 100})`,
+                                borderColor: 'transparent'
+                            },
+                            zonaCritica: {
+                                type: 'box',
+                                xScaleID: 'x',
+                                yScaleID: 'y',
+                                yMin: zonasConfig.critica.min,
+                                yMax: zonasConfig.critica.max,
+                                backgroundColor: `rgba(255, 0, 0, ${currentOpacity / 100})`,
+                                borderColor: 'transparent'
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Fecha y Hora'
+                        },
+                        ticks: {
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: yAxisConfig
+                }
+            };
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
                     datasets: datasets
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    events: [],
-                    hover: { mode: null },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false },
-                        annotation: {
-                            annotations: {
-                                // Agregar anotación para el último valor
-                                ultimoValorLabel: {
-                                    type: 'label',
-                                    xValue: fechas.length - 1,
-                                    yValue: ultimoValor,
-                                    xAdjust: -80,
-                                    yAdjust: -30,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                    content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    },
-                                    position: {
-                                        x: 'end',
-                                        y: 'top'
-                                    },
-                                    padding: 8
-                                },
-                                zonaTrabajoNormal: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.trabajo.min,
-                                    yMax: zonasConfig.trabajo.max,
-                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaObservacion: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.observacion.min,
-                                    yMax: zonasConfig.observacion.max,
-                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaCritica: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.critica.min,
-                                    yMax: zonasConfig.critica.max,
-                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fecha y Hora'
-                            },
-                            ticks: {
-                                maxTicksLimit: 10
-                            }
-                        },
-                        y: yAxisConfig
-                    }
-                }
+                options: options
             });
 
             if (!isTestUser) {
@@ -821,35 +815,6 @@
             
             return false;
         }
-
-        function autoFetch() {
-            // Solo actualizar si:
-            // 1. No estamos en tiempo real
-            // 2. No hay filtros de fecha activos
-            // 3. No estamos viendo datos históricos (verificar si el usuario no es 'test')
-            if (!isRealTime && 
-                !document.getElementById('fecha_inicio').value && 
-                !document.getElementById('fecha_fin').value) {
-                
-                // Verificar si estamos viendo datos en tiempo real (usuario test)
-                fetch('/data?format=json&limit=1')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.isRaspiUser) {
-                            fetchData();
-                            // Asegurar que la opacidad se mantenga después de la actualización
-                            setTimeout(() => {
-                                updateChartZonesOpacity(currentOpacity / 100);
-                            }, 100);
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        }
-
-        // Aumentar el intervalo para reducir actualizaciones innecesarias
-        setInterval(autoFetch, 10000); // Cambiado de 5000 a 10000 ms
-        fetchData(); // Carga inicial
 
         function updateZonas() {
             zonasConfig = {
