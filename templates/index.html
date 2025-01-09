@@ -412,7 +412,7 @@
                             } else {
                                 updateRealTimeChart(data);
                             }
-                            realTimeInterval = setInterval(fetchRealTimeData, 3000);
+                            realTimeInterval = setInterval(fetchRealTimeData, 1000);
                         }
                     })
                     .catch(error => {
@@ -483,38 +483,32 @@
                 newData.medicion[newData.medicion.length - 1] : 
                 newData.perno_1[newData.perno_1.length - 1];
 
-            // Actualizar la anotación del último valor
-            chart.options.plugins.annotation.annotations.ultimoValorLabel = {
-                type: 'label',
-                xValue: newData.fechas.length - 1,
-                yValue: ultimoValor,
-                xAdjust: -80,
-                yAdjust: -30,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
-                font: {
-                    size: 14,
-                    weight: 'bold'
-                },
-                position: {
-                    x: 'end',
-                    y: 'top'
-                },
-                padding: 8
-            };
+            // Actualizar solo el contenido del label sin recrearlo
+            const ultimoValorLabel = chart.options.plugins.annotation.annotations.ultimoValorLabel;
+            ultimoValorLabel.content = [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
+            ultimoValorLabel.yValue = ultimoValor;
 
-            // Actualizar datos para usuario normal
-            for (let i = 0; i < 5; i++) {
-                const pernoKey = `perno_${i+1}`;
-                if (newData[pernoKey]) {
-                    const existingData = chart.data.datasets[i].data;
-                    const newDataPoints = newData[pernoKey];
-                    chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+            if (isTestUser) {
+                // Actualizar datos para usuario test
+                const existingData = chart.data.datasets[0].data;
+                const newDataPoints = newData.medicion;
+                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+            } else {
+                // Actualizar datos para usuario normal
+                for (let i = 0; i < 5; i++) {
+                    const pernoKey = `perno_${i+1}`;
+                    if (newData[pernoKey]) {
+                        const existingData = chart.data.datasets[i].data;
+                        const newDataPoints = newData[pernoKey];
+                        chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                    }
                 }
             }
+            
             chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
-
-            chart.update();
+            
+            // Usar modo 'none' para una actualización más suave
+            chart.update('none');
         }
 
         function createChart(fechas, datos) {
