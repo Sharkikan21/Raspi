@@ -484,12 +484,24 @@
                 newData.perno_1[newData.perno_1.length - 1];
 
             // Actualizar la anotación del último valor
-            chart.options.plugins.annotation.annotations.ultimoValorLabel.xValue = newData.fechas.length - 1;
-            chart.options.plugins.annotation.annotations.ultimoValorLabel.yValue = ultimoValor;
-            chart.options.plugins.annotation.annotations.ultimoValorLabel.content = [
-                `Último valor:`,
-                `${ultimoValor.toFixed(2)} KLBF`
-            ];
+            chart.options.plugins.annotation.annotations.ultimoValorLabel = {
+                type: 'label',
+                xValue: 0,
+                yValue: ultimoValor,
+                xAdjust: 10,
+                yAdjust: -30,
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                font: {
+                    size: 14,
+                    weight: 'bold'
+                },
+                position: {
+                    x: 'start',
+                    y: 'top'
+                },
+                padding: 8
+            };
 
             // Actualizar datos para usuario normal
             for (let i = 0; i < 5; i++) {
@@ -606,17 +618,21 @@
                                 // Agregar anotación para el último valor
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    xValue: fechas.length - 1,
+                                    xValue: 0,
                                     yValue: ultimoValor,
-                                    xAdjust: 50,  // Ajustar posición horizontal
-                                    yAdjust: -10, // Ajustar posición vertical
+                                    xAdjust: 10,
+                                    yAdjust: -30,
                                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
                                     font: {
                                         size: 14,
                                         weight: 'bold'
                                     },
-                                    position: 'end'
+                                    position: {
+                                        x: 'start',
+                                        y: 'top'
+                                    },
+                                    padding: 8
                                 },
                                 zonaTrabajoNormal: {
                                     type: 'box',
