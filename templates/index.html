@@ -750,7 +750,6 @@
             const fecha_inicio = document.getElementById('fecha_inicio').value;
             const fecha_fin = document.getElementById('fecha_fin').value;
             
-            // URL base para los datos
             let baseUrl = '/data';
             let params = new URLSearchParams();
             
@@ -764,7 +763,10 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.fechas && data.fechas.length > 0) {
-                        createChart(data.fechas, data);
+                        // Solo actualizar si los datos son diferentes
+                        if (!chart || hasDataChanged(data)) {
+                            createChart(data.fechas, data);
+                        }
                     }
                 })
                 .catch(error => console.error('Error:', error));
@@ -780,21 +782,59 @@
             }
         }
 
+        function hasDataChanged(newData) {
+            if (!chart) return true;
+            
+            const currentData = chart.data;
+            if (currentData.labels.length !== newData.fechas.length) return true;
+            
+            // Comparar fechas
+            if (JSON.stringify(currentData.labels) !== JSON.stringify(newData.fechas)) return true;
+            
+            // Comparar datos
+            if (newData.isRaspiUser) {
+                return JSON.stringify(currentData.datasets[0].data) !== JSON.stringify(newData.medicion);
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    const pernoKey = `perno_${i+1}`;
+                    if (newData[pernoKey] && 
+                        JSON.stringify(currentData.datasets[i].data) !== JSON.stringify(newData[pernoKey])) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+
         function autoFetch() {
+            // Solo actualizar si:
+            // 1. No estamos en tiempo real
+            // 2. No hay filtros de fecha activos
+            // 3. No estamos viendo datos históricos (verificar si el usuario no es 'test')
             if (!isRealTime && 
                 !document.getElementById('fecha_inicio').value && 
                 !document.getElementById('fecha_fin').value) {
                 
-                fetchData();
-                // Asegurar que la opacidad se mantenga después de la actualización
-                setTimeout(() => {
-                    updateChartZonesOpacity(currentOpacity / 100);
-                }, 100);
+                // Verificar si estamos viendo datos en tiempo real (usuario test)
+                fetch('/data?format=json&limit=1')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.isRaspiUser) {
+                            fetchData();
+                            // Asegurar que la opacidad se mantenga después de la actualización
+                            setTimeout(() => {
+                                updateChartZonesOpacity(currentOpacity / 100);
+                            }, 100);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
             }
         }
-        
-        setInterval(autoFetch, 5000);
-        fetchData(); // Initial fetch
+
+        // Aumentar el intervalo para reducir actualizaciones innecesarias
+        setInterval(autoFetch, 10000); // Cambiado de 5000 a 10000 ms
+        fetchData(); // Carga inicial
 
         function updateZonas() {
             zonasConfig = {
