@@ -488,37 +488,52 @@
             ultimoValorLabel.content = [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
             ultimoValorLabel.yValue = ultimoValor;
 
-            // Actualizar datos sin modificar el objeto completo
+            // Mantener la animación suave solo para el desplazamiento horizontal
+            chart.options.animation = {
+                x: {
+                    duration: 0,  // Sin animación en X para un desplazamiento inmediato
+                    easing: 'linear'
+                },
+                y: false  // Desactivar animación en Y para mantener posición vertical
+            };
+
+            // Actualizar datos manteniendo la posición vertical
             if (isTestUser) {
-                const newDataPoints = newData.medicion.slice(-1);  // Solo tomar el último punto
-                chart.data.datasets[0].data.push(...newDataPoints);
-                if (chart.data.datasets[0].data.length > MAX_POINTS) {
-                    chart.data.datasets[0].data.splice(0, chart.data.datasets[0].data.length - MAX_POINTS);
+                const newDataPoints = newData.medicion.slice(-1);
+                const dataset = chart.data.datasets[0];
+                
+                // Desplazar datos manteniendo el máximo de puntos
+                dataset.data.push(...newDataPoints);
+                if (dataset.data.length > MAX_POINTS) {
+                    dataset.data.shift();  // Eliminar el primer punto
                 }
             } else {
                 for (let i = 0; i < 5; i++) {
                     const pernoKey = `perno_${i+1}`;
                     if (newData[pernoKey]) {
-                        const newDataPoints = newData[pernoKey].slice(-1);  // Solo tomar el último punto
-                        chart.data.datasets[i].data.push(...newDataPoints);
-                        if (chart.data.datasets[i].data.length > MAX_POINTS) {
-                            chart.data.datasets[i].data.splice(0, chart.data.datasets[i].data.length - MAX_POINTS);
+                        const newDataPoints = newData[pernoKey].slice(-1);
+                        const dataset = chart.data.datasets[i];
+                        
+                        dataset.data.push(...newDataPoints);
+                        if (dataset.data.length > MAX_POINTS) {
+                            dataset.data.shift();
                         }
                     }
                 }
             }
 
-            // Actualizar labels de la misma manera
+            // Actualizar etiquetas de tiempo
             chart.data.labels.push(...newLabels);
             if (chart.data.labels.length > MAX_POINTS) {
-                chart.data.labels.splice(0, chart.data.labels.length - MAX_POINTS);
+                chart.data.labels.shift();
             }
 
-            // Actualizar con animación desactivada
+            // Actualizar el gráfico con las nuevas configuraciones
             chart.update({
                 duration: 0,
                 easing: 'linear',
-                lazy: true
+                lazy: false,
+                mode: 'none'
             });
         }
 
