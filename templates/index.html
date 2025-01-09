@@ -474,31 +474,33 @@
                 !existingLabels.includes(fecha)
             );
 
-            if (newLabels.length === 0) return; // No hay nuevos datos
+            if (newLabels.length === 0) return;
 
-            // Verificar si es usuario test
             const isTestUser = newData.isRaspiUser;
 
-            if (isTestUser) {
-                // Actualizar datos para usuario test
-                const existingData = chart.data.datasets[0].data;
-                const newDataPoints = newData.medicion;
-                
-                // Actualizar datos manteniendo solo los últimos MAX_POINTS
-                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
-                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
-            } else {
-                // Actualizar datos para usuario normal
-                for (let i = 0; i < 5; i++) {
-                    const pernoKey = `perno_${i+1}`;
-                    if (newData[pernoKey]) {
-                        const existingData = chart.data.datasets[i].data;
-                        const newDataPoints = newData[pernoKey];
-                        chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
-                    }
+            // Actualizar el último valor
+            const ultimoValor = isTestUser ? 
+                newData.medicion[newData.medicion.length - 1] : 
+                newData.perno_1[newData.perno_1.length - 1];
+
+            // Actualizar la anotación del último valor
+            chart.options.plugins.annotation.annotations.ultimoValorLabel.xValue = newData.fechas.length - 1;
+            chart.options.plugins.annotation.annotations.ultimoValorLabel.yValue = ultimoValor;
+            chart.options.plugins.annotation.annotations.ultimoValorLabel.content = [
+                `Último valor:`,
+                `${ultimoValor.toFixed(2)} KLBF`
+            ];
+
+            // Actualizar datos para usuario normal
+            for (let i = 0; i < 5; i++) {
+                const pernoKey = `perno_${i+1}`;
+                if (newData[pernoKey]) {
+                    const existingData = chart.data.datasets[i].data;
+                    const newDataPoints = newData[pernoKey];
+                    chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
                 }
-                chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
             }
+            chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
 
             chart.update();
         }
@@ -511,8 +513,12 @@
                 chart.destroy();
             }
 
-            // Verificar si los datos son para el usuario test
             const isTestUser = datos.isRaspiUser;
+            
+            // Obtener el último valor
+            const ultimoValor = isTestUser ? 
+                datos.medicion[datos.medicion.length - 1] : 
+                datos.perno_1[datos.perno_1.length - 1];
 
             // Configurar escala Y
             const yAxisConfig = {
@@ -596,7 +602,22 @@
                         legend: { display: false },
                         tooltip: { enabled: false },
                         annotation: {
-                            annotations: isTestUser ? {} : {
+                            annotations: {
+                                // Agregar anotación para el último valor
+                                ultimoValorLabel: {
+                                    type: 'label',
+                                    xValue: fechas.length - 1,
+                                    yValue: ultimoValor,
+                                    xAdjust: 50,  // Ajustar posición horizontal
+                                    yAdjust: -10, // Ajustar posición vertical
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                    content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    },
+                                    position: 'end'
+                                },
                                 zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
