@@ -412,7 +412,7 @@
                             } else {
                                 updateRealTimeChart(data);
                             }
-                            realTimeInterval = setInterval(fetchRealTimeData, 1000);
+                            realTimeInterval = setInterval(fetchRealTimeData, 2000);
                         }
                     })
                     .catch(error => {
@@ -488,27 +488,38 @@
             ultimoValorLabel.content = [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
             ultimoValorLabel.yValue = ultimoValor;
 
+            // Actualizar datos sin modificar el objeto completo
             if (isTestUser) {
-                // Actualizar datos para usuario test
-                const existingData = chart.data.datasets[0].data;
-                const newDataPoints = newData.medicion;
-                chart.data.datasets[0].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                const newDataPoints = newData.medicion.slice(-1);  // Solo tomar el último punto
+                chart.data.datasets[0].data.push(...newDataPoints);
+                if (chart.data.datasets[0].data.length > MAX_POINTS) {
+                    chart.data.datasets[0].data.splice(0, chart.data.datasets[0].data.length - MAX_POINTS);
+                }
             } else {
-                // Actualizar datos para usuario normal
                 for (let i = 0; i < 5; i++) {
                     const pernoKey = `perno_${i+1}`;
                     if (newData[pernoKey]) {
-                        const existingData = chart.data.datasets[i].data;
-                        const newDataPoints = newData[pernoKey];
-                        chart.data.datasets[i].data = [...existingData, ...newDataPoints].slice(-MAX_POINTS);
+                        const newDataPoints = newData[pernoKey].slice(-1);  // Solo tomar el último punto
+                        chart.data.datasets[i].data.push(...newDataPoints);
+                        if (chart.data.datasets[i].data.length > MAX_POINTS) {
+                            chart.data.datasets[i].data.splice(0, chart.data.datasets[i].data.length - MAX_POINTS);
+                        }
                     }
                 }
             }
-            
-            chart.data.labels = [...existingLabels, ...newLabels].slice(-MAX_POINTS);
-            
-            // Usar modo 'none' para una actualización más suave
-            chart.update('none');
+
+            // Actualizar labels de la misma manera
+            chart.data.labels.push(...newLabels);
+            if (chart.data.labels.length > MAX_POINTS) {
+                chart.data.labels.splice(0, chart.data.labels.length - MAX_POINTS);
+            }
+
+            // Actualizar con animación desactivada
+            chart.update({
+                duration: 0,
+                easing: 'linear',
+                lazy: true
+            });
         }
 
         function createChart(fechas, datos) {
