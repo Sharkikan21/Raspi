@@ -50,16 +50,16 @@ def get_db_data():
         fecha_fin = request.args.get('fecha_fin')
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
-        limit = request.args.get('limit')
+        limit = request.args.get('limit', '50')
 
-        # Obtener el nombre de usuario para verificar si es "test"
+        # Obtener el nombre de usuario
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT username FROM users WHERE id = %s", (session['user_id'],))
         username = cursor.fetchone()[0]
         cursor.close()
 
-        # Base query según el rol del usuario
+        # Construir la consulta base según el rol
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
                 base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
@@ -74,59 +74,24 @@ def get_db_data():
             """
             params = [session['user_id']]
 
-        # Agregar condiciones adicionales
+        # Agregar filtros adicionales
         if after_timestamp:
             base_query += ' AND fecha > %s' if 'WHERE' in base_query else ' WHERE fecha > %s'
             params.append(after_timestamp)
         elif fecha_inicio and fecha_fin:
             base_query += ' AND fecha BETWEEN %s AND %s' if 'WHERE' in base_query else ' WHERE fecha BETWEEN %s AND %s'
-            try:
-                # Convertir las fechas a UTC
-                fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
-                fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
-                # Asegurar que la fecha final sea el último momento del día
-                fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
-                
-                params.extend([
-                    fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                    fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
-                ])
-            except ValueError as e:
-                print(f"Error parsing dates: {e}")
-                return jsonify({'error': 'Invalid date format'}), 400
+            params.extend([fecha_inicio, fecha_fin])
 
-        # Ordenar por fecha
-        base_query += ' ORDER BY fecha'  # Cambiado de DESC a ASC para mantener el orden cronológico
+        # Ordenar y limitar resultados
+        base_query += ' ORDER BY fecha DESC LIMIT %s'
+        params.append(int(limit))
 
-        # Solo aplicar límites en tiempo real
-        if not fecha_inicio and not fecha_fin:
-            if limit:
-                base_query += f' LIMIT {int(limit)}'
-            elif after_timestamp:
-                base_query += ' LIMIT 50'
-
-        print(f"Query: {base_query}")  # Para debugging
-        print(f"Params: {params}")     # Para debugging
-
-        conn = get_db_connection()
+        # Ejecutar consulta
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
-        # Renombrar las columnas
-        column_mapping = {
-            'id': 'Numero',
-            'fecha': 'Fecha',
-            'perno_1': 'Dato 1',
-            'perno_2': 'Dato 2',
-            'perno_3': 'Dato 3',
-            'perno_4': 'Dato 4',
-            'perno_5': 'Dato 5',
-            'raspberry_id': 'ID'
-        }
-        df = df.rename(columns=column_mapping)
-
         if username == 'test':
-            # Filtrar datos que son distintos de cero y no son NaN
+            # Filtrar datos válidos
             df = df[df['Dato 1'].notna() & (df['Dato 1'] != 0)]
             
             if format_type == 'json':
@@ -137,60 +102,25 @@ def get_db_data():
                 }
                 return jsonify(data)
             else:
-                # Para la tabla, mostrar las columnas necesarias incluyendo el número
-                df_display = df[['Numero', 'Fecha', 'Dato 1']].copy()
-                df_display.columns = ['N°', 'Fecha', 'Perno 1']
-                df_display['Perno 1'] = df_display['Perno 1'].apply(lambda x: float(f"{x:.2f}"))
-                
-                # Ordenar por fecha descendente
-                df_display = df_display.sort_values('Fecha', ascending=False)
-                
-                # Obtener el último valor
-                ultimo_valor = df_display.iloc[0]['Perno 1']
-                
-                # Crear el HTML de la tabla con el último valor
-                html_tabla = f"""
-                <div style="margin-bottom: 10px; font-size: 1.2em; font-weight: bold;">
-                    Último valor: {ultimo_valor:.2f} KLBF
-                </div>
-                {df_display.to_html(classes='table table-striped', index=False)}
-                """
-                
-                return html_tabla
+                return render_template('data_table.html', data=df)
         else:
-            # Eliminar las columnas que solo contienen NaN
-            numeric_columns = ['Dato 1', 'Dato 2', 'Dato 3', 'Dato 4', 'Dato 5']
-            valid_columns = ['Numero', 'Fecha']  # Columnas que siempre queremos mantener
-            
-            # Agregar solo las columnas que tienen datos no-NaN
-            for col in numeric_columns:
-                if not df[col].isna().all():  # Si la columna tiene al menos un valor no-NaN
-                    valid_columns.append(col)
-            valid_columns.append('ID')  # Agregar ID al final
-            
-            # Filtrar el DataFrame para mantener solo las columnas válidas
-            df = df[valid_columns].copy()  # Crear una copia para evitar problemas de vista
-            
+            # Procesar datos para usuario normal
             if format_type == 'json':
                 data = {
                     'fechas': df['Fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
                     'isRaspiUser': False
                 }
-                # Agregar solo los datos de las columnas válidas
-                for col in valid_columns:
-                    if col in numeric_columns:
-                        data[f'perno_{col[-1]}'] = df[col].fillna("").apply(lambda x: float(f"{x:.2f}") if pd.notna(x) and x != 0 else "").tolist()
+                for i in range(1, 6):
+                    col_name = f'Dato {i}'
+                    if col_name in df.columns:
+                        data[f'perno_{i}'] = df[col_name].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) and x != 0 else None).tolist()
                 return jsonify(data)
             else:
-                # Para la tabla, dejar los NaN como espacios vacíos
-                for col in valid_columns:
-                    if col in numeric_columns:
-                        df[col] = df[col].apply(lambda x: f"{float(x):.2f}" if pd.notna(x) and x != 0 else "")
-                return df.to_html(classes='table table-striped', index=False)
+                return render_template('data_table.html', data=df)
 
     except Exception as e:
         print(f"Database error: {e}")
-        return f"<p>Error: {str(e)}</p>"
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
