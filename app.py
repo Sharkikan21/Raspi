@@ -78,18 +78,22 @@ def get_db_data():
             base_query += ' AND fecha > %s'
             params.append(after_timestamp)
         elif fecha_inicio and fecha_fin:
-            base_query += ' AND fecha BETWEEN %s AND %s'
+            base_query += ' AND fecha >= %s AND fecha <= %s'
             try:
                 fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
                 fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
                 fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
                 params.extend([fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                               fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
+                             fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
             except ValueError as e:
                 print(f"Error parsing dates: {e}")
                 return jsonify({'error': 'Invalid date format'}), 400
 
-        base_query += ' ORDER BY fecha'
+        # Ordenar por fecha descendente para la tabla, pero mantener ascendente para el JSON
+        if format_type == 'html':
+            base_query += ' ORDER BY fecha DESC'
+        else:
+            base_query += ' ORDER BY fecha ASC'
 
         if not fecha_inicio and not fecha_fin:
             if limit:
@@ -103,21 +107,26 @@ def get_db_data():
 
         # Manejar valores nulos y formatear datos
         numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
+        
+        # Identificar columnas con todos los valores nulos o cero
+        columnas_validas = []
         for col in numeric_columns:
-            df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
+            if df[col].notna().any() and (df[col] != 0).any():
+                columnas_validas.append(col)
+                df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
         if format_type == 'json':
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'perno_1': df['perno_1'].tolist(),
-                'perno_2': df['perno_2'].tolist(),
-                'perno_3': df['perno_3'].tolist(),
-                'perno_4': df['perno_4'].tolist(),
-                'perno_5': df['perno_5'].tolist()
             }
+            # Solo incluir columnas válidas en el JSON
+            for col in columnas_validas:
+                data[col] = df[col].tolist()
             return jsonify(data)
         else:
-            return df.to_html(classes='table table-striped', index=False)
+            # Seleccionar solo las columnas válidas para la tabla HTML
+            columns_to_show = ['fecha'] + columnas_validas + ['raspberry_id']
+            return df[columns_to_show].to_html(classes='table table-striped', index=False)
 
     except Exception as e:
         print(f"Database error: {e}")

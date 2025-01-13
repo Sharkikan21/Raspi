@@ -385,27 +385,15 @@
                 btn.textContent = 'Detener Tiempo Real';
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
-                
-                // Cargar datos iniciales con caché
-                fetch('/data?format=json&initial_load=true')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.fechas && data.fechas.length > 0) {
-                            lastTimestamp = data.fechas[data.fechas.length - 1];
-                            if (!chart) {
-                                createChart(data.fechas, data);
-                            } else {
-                                updateRealTimeChart(data);
-                            }
-                            realTimeInterval = setInterval(fetchRealTimeData, 2000);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error starting real-time:', error);
-                        toggleRealTime();
-                    });
+                lastTimestamp = null;
+                realTimeInterval = setInterval(fetchRealTimeData, 5000);
             } else {
-                stopRealTime();
+                btn.textContent = 'Iniciar Tiempo Real';
+                btn.classList.remove('active');
+                filterControls.classList.remove('disabled');
+                if (realTimeInterval) {
+                    clearInterval(realTimeInterval);
+                }
             }
         }
 
@@ -855,48 +843,16 @@
                 }
             };
             
-            if (chart) {
-                const opacity = currentOpacity / 100;
-                
-                // Mantener el label del último valor
-                const ultimoValorLabel = chart.options.plugins.annotation.annotations.ultimoValorLabel;
-                
-                chart.options.plugins.annotation.annotations = {
-                    // Mantener el label del último valor
-                    ultimoValorLabel: ultimoValorLabel,
-                    
-                    // Actualizar las zonas
-                    zonaTrabajoNormal: {
-                        type: 'box',
-                        xScaleID: 'x',
-                        yScaleID: 'y',
-                        yMin: zonasConfig.trabajo.min,
-                        yMax: zonasConfig.trabajo.max,
-                        backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                        borderColor: 'transparent'
-                    },
-                    zonaObservacion: {
-                        type: 'box',
-                        xScaleID: 'x',
-                        yScaleID: 'y',
-                        yMin: zonasConfig.observacion.min,
-                        yMax: zonasConfig.observacion.max,
-                        backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                        borderColor: 'transparent'
-                    },
-                    zonaCritica: {
-                        type: 'box',
-                        xScaleID: 'x',
-                        yScaleID: 'y',
-                        yMin: zonasConfig.critica.min,
-                        yMax: zonasConfig.critica.max,
-                        backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                        borderColor: 'transparent'
-                    }
-                };
-                
-                chart.update();
-                createZoneLegend();
+            actualizarZonasEnGrafico();
+            
+            // Si estamos en tiempo real, reiniciar el intervalo
+            if (isRealTime) {
+                if (realTimeInterval) {
+                    clearInterval(realTimeInterval);
+                }
+                realTimeInterval = setInterval(fetchRealTimeData, 5000);
+            } else {
+                fetchData(); // Si no estamos en tiempo real, actualizar los datos normalmente
             }
         }
 
