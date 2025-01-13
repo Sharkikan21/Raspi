@@ -53,102 +53,78 @@ def dashboard():
 @login_required
 def get_db_data():
     try:
+        fecha_inicio = request.args.get('fecha_inicio')
+        fecha_fin = request.args.get('fecha_fin')
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
-        is_initial_load = request.args.get('initial_load', 'false') == 'true'
+        limit = request.args.get('limit')
 
-        # Obtener el nombre de usuario
+        # Base query según el rol del usuario
+        if session['role'] == 'admin':
+            if 'selected_raspberry' in session:
+                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
+                params = [int(session['selected_raspberry'])]
+            else:
+                return jsonify({'error': 'No raspberry selected'}), 400
+        else:
+            base_query = """
+                SELECT t.* FROM public.tension t
+                JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
+                WHERE ur.user_id = %s
+            """
+            params = [session['user_id']]
+
+        # Agregar condiciones adicionales
+        if after_timestamp:
+            base_query += ' AND fecha > %s' if 'WHERE' in base_query else ' WHERE fecha > %s'
+            params.append(after_timestamp)
+        elif fecha_inicio and fecha_fin:
+            base_query += ' AND fecha BETWEEN %s AND %s' if 'WHERE' in base_query else ' WHERE fecha BETWEEN %s AND %s'
+            try:
+                fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
+                fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
+                fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
+                
+                params.extend([
+                    fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                    fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
+                ])
+            except ValueError as e:
+                print(f"Error parsing dates: {e}")
+                return jsonify({'error': 'Invalid date format'}), 400
+
+        base_query += ' ORDER BY fecha'
+
+        if not fecha_inicio and not fecha_fin:
+            if limit:
+                base_query += f' LIMIT {int(limit)}'
+            elif after_timestamp:
+                base_query += ' LIMIT 50'
+
         conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE id = %s", (session['user_id'],))
-        username = cursor.fetchone()[0]
-        cursor.close()
+        df = pd.read_sql_query(base_query, conn, params=params)
+        conn.close()
 
-        # Clave única para el caché basada en el usuario y raspberry
-        cache_key = f"data_{username}"
-        if session.get('role') == 'admin' and session.get('selected_raspberry'):
-            cache_key += f"_{session['selected_raspberry']}"
-
-        if is_initial_load:
-            # Limpiar caché anterior para este usuario
-            cache.delete(cache_key)
-            df = get_initial_data(username)
-            cache.set(cache_key, df)
+        if format_type == 'json':
+            data = {
+                'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+                'perno_1': df['perno_1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_2': df['perno_2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_3': df['perno_3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_4': df['perno_4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
+                'perno_5': df['perno_5'].apply(lambda x: float(f"{x:.2f}")).tolist()
+            }
+            return jsonify(data)
         else:
-            # Obtener datos del caché
-            df = cache.get(cache_key)
-            if df is None or after_timestamp:
-                # Si no hay caché o se solicitan nuevos datos
-                df = get_new_data(username, after_timestamp)
-                if not after_timestamp:
-                    cache.set(cache_key, df)
-                elif df is not None and not df.empty:
-                    cached_df = cache.get(cache_key)
-                    if cached_df is not None:
-                        df = pd.concat([cached_df, df]).drop_duplicates()
-                        cache.set(cache_key, df)
-
-        if df is None or df.empty:
-            return jsonify({'error': 'No data available'}) if format_type == 'json' else "<p>No hay datos disponibles</p>"
-
-        # Procesar datos según el usuario
-        if username == 'test':
-            return process_test_user_data(df, format_type)
-        else:
-            return process_normal_user_data(df, format_type)
+            # Truncar decimales en la tabla HTML
+            numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
+            for col in numeric_columns:
+                df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
+            return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({'error': str(e)}) if format_type == 'json' else f"<p>Error: {str(e)}</p>"
-
-def get_initial_data(username):
-    # Obtener todos los datos iniciales
-    conn = get_db_connection()
-    query = build_query(username)
-    df = pd.read_sql_query(query, conn, params=get_query_params(username))
-    conn.close()
-    return process_dataframe(df)
-
-def get_new_data(username, after_timestamp):
-    # Obtener solo los nuevos datos después del timestamp
-    if after_timestamp:
-        conn = get_db_connection()
-        query = build_query(username, after_timestamp)
-        df = pd.read_sql_query(query, conn, params=get_query_params(username, after_timestamp))
-        conn.close()
-        return process_dataframe(df)
-    return None
-
-def build_query(username, after_timestamp=None):
-    base_query = """
-        SELECT t.* FROM public.tension t
-        JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
-        WHERE ur.user_id = %s
-    """
-    if after_timestamp:
-        base_query += " AND t.fecha > %s"
-    base_query += " ORDER BY t.fecha ASC"
-    return base_query
-
-def get_query_params(username, after_timestamp=None):
-    params = [session['user_id']]
-    if after_timestamp:
-        params.append(after_timestamp)
-    return params
-
-def process_dataframe(df):
-    # Procesar el DataFrame (renombrar columnas, etc.)
-    column_mapping = {
-        'id': 'Numero',
-        'fecha': 'Fecha',
-        'perno_1': 'Dato 1',
-        'perno_2': 'Dato 2',
-        'perno_3': 'Dato 3',
-        'perno_4': 'Dato 4',
-        'perno_5': 'Dato 5',
-        'raspberry_id': 'ID'
-    }
-    return df.rename(columns=column_mapping)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
