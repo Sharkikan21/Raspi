@@ -386,7 +386,17 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
-                realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                // Cargar datos iniciales
+                fetch('/data?format=json')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.fechas && data.fechas.length > 0) {
+                            lastTimestamp = data.fechas[data.fechas.length - 1];
+                            createChart(data.fechas, data);
+                            realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
             } else {
                 btn.textContent = 'Iniciar Tiempo Real';
                 btn.classList.remove('active');
