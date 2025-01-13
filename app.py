@@ -74,21 +74,17 @@ def get_db_data():
             """
             params = [session['user_id']]
 
-        # Agregar condiciones adicionales
         if after_timestamp:
-            base_query += ' AND fecha > %s' if 'WHERE' in base_query else ' WHERE fecha > %s'
+            base_query += ' AND fecha > %s'
             params.append(after_timestamp)
         elif fecha_inicio and fecha_fin:
-            base_query += ' AND fecha BETWEEN %s AND %s' if 'WHERE' in base_query else ' WHERE fecha BETWEEN %s AND %s'
+            base_query += ' AND fecha BETWEEN %s AND %s'
             try:
                 fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
                 fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
                 fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
-                
-                params.extend([
-                    fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                    fecha_fin.strftime('%Y-%m-%d %H:%M:%S')
-                ])
+                params.extend([fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                               fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
             except ValueError as e:
                 print(f"Error parsing dates: {e}")
                 return jsonify({'error': 'Invalid date format'}), 400
@@ -105,26 +101,28 @@ def get_db_data():
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
+        # Manejar valores nulos y formatear datos
+        numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
+        for col in numeric_columns:
+            df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
+
         if format_type == 'json':
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'perno_1': df['perno_1'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_2': df['perno_2'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_3': df['perno_3'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_4': df['perno_4'].apply(lambda x: float(f"{x:.2f}")).tolist(),
-                'perno_5': df['perno_5'].apply(lambda x: float(f"{x:.2f}")).tolist()
+                'perno_1': df['perno_1'].tolist(),
+                'perno_2': df['perno_2'].tolist(),
+                'perno_3': df['perno_3'].tolist(),
+                'perno_4': df['perno_4'].tolist(),
+                'perno_5': df['perno_5'].tolist()
             }
             return jsonify(data)
         else:
-            # Truncar decimales en la tabla HTML
-            numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
-            for col in numeric_columns:
-                df[col] = df[col].apply(lambda x: float(f"{x:.2f}"))
             return df.to_html(classes='table table-striped', index=False)
 
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({'error': str(e)}) if format_type == 'json' else f"<p>Error: {str(e)}</p>"
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
