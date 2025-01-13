@@ -385,28 +385,13 @@
                 btn.textContent = 'Detener Tiempo Real';
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
-                lastTimestamp = null;
                 
-                // Obtener el último timestamp de la tabla actual
-                const tableRows = document.querySelector('#csv-table table tbody').rows;
-                if (tableRows.length > 0) {
-                    // Obtener la fecha del primer row (el más reciente)
-                    const lastDate = tableRows[0].cells[1].textContent; // Índice 1 para la columna Fecha
-                    lastTimestamp = lastDate;
-                }
-                
-                // Iniciar con los datos desde el último timestamp
-                let url = '/data?format=json&limit=50';
-                if (lastTimestamp) {
-                    url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
-                }
-                
-                fetch(url)
+                // Cargar datos iniciales con caché
+                fetch('/data?format=json&initial_load=true')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            // Asegurarnos de que el gráfico se crea/actualiza correctamente
                             if (!chart) {
                                 createChart(data.fechas, data);
                             } else {
@@ -417,50 +402,53 @@
                     })
                     .catch(error => {
                         console.error('Error starting real-time:', error);
-                        btn.textContent = 'Iniciar Tiempo Real';
-                        btn.classList.remove('active');
-                        filterControls.classList.remove('disabled');
+                        toggleRealTime();
                     });
             } else {
-                btn.textContent = 'Iniciar Tiempo Real';
-                btn.classList.remove('active');
-                filterControls.classList.remove('disabled');
-                if (realTimeInterval) {
-                    clearInterval(realTimeInterval);
-                    realTimeInterval = null;
-                }
+                stopRealTime();
             }
         }
 
         function fetchRealTimeData() {
-            if (!isRealTime) return;  // Verificar si aún estamos en modo tiempo real
+            if (!isRealTime || !lastTimestamp) return;
             
-            let url = '/data?format=json';
-            if (lastTimestamp) {
-                url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
-            }
-            
-            fetch(url)
+            fetch(`/data?format=json&after_timestamp=${encodeURIComponent(lastTimestamp)}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.fechas && data.fechas.length > 0) {
                         lastTimestamp = data.fechas[data.fechas.length - 1];
                         updateRealTimeChart(data);
+                        
                         if (tableVisible) {
-                            // Actualizar también la tabla si está visible
-                            fetch('/data')
-                                .then(response => response.text())
-                                .then(html => {
-                                    document.getElementById('csv-table').innerHTML = html;
-                                });
+                            updateTable();
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching real-time data:', error);
-                    // Si hay un error, detener el tiempo real
-                    toggleRealTime();
+                    stopRealTime();
                 });
+        }
+
+        function updateTable() {
+            fetch('/data')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('csv-table').innerHTML = html;
+                })
+                .catch(error => console.error('Error updating table:', error));
+        }
+
+        function stopRealTime() {
+            const btn = document.getElementById('realTimeBtn');
+            btn.textContent = 'Iniciar Tiempo Real';
+            btn.classList.remove('active');
+            document.getElementById('filterControls').classList.remove('disabled');
+            if (realTimeInterval) {
+                clearInterval(realTimeInterval);
+                realTimeInterval = null;
+            }
+            isRealTime = false;
         }
 
         function updateRealTimeChart(newData) {
