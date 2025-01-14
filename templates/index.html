@@ -344,7 +344,7 @@
     
     <div class="data-container">
         <div class="chart-container">
-            <canvas id="myChart"></canvas>
+        <canvas id="myChart"></canvas>
         </div>
         
         <div id="csv-table" class="hidden"></div>
@@ -386,6 +386,7 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 lastTimestamp = null;
+                
                 // Cargar datos iniciales
                 fetch('/data?format=json')
                     .then(response => response.json())
@@ -395,8 +396,7 @@
                             createChart(data.fechas, data);
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
-                    })
-                    .catch(error => console.error('Error:', error));
+                    });
             } else {
                 btn.textContent = 'Iniciar Tiempo Real';
                 btn.classList.remove('active');
@@ -451,8 +451,7 @@
 
         function updateRealTimeChart(data) {
             if (!chart) return;
-
-            // Actualizar datos del gráfico
+            
             chart.data.labels = data.fechas;
             
             // Actualizar datasets
@@ -475,13 +474,11 @@
             }
 
             if (ultimoValor !== null) {
-                chart.options.plugins.annotation.annotations.ultimoValorLabel.content = [
-                    'Último valor:',
-                    `${ultimoValor.toFixed(2)} KLBF`
-                ];
+                chart.options.plugins.annotation.annotations.ultimoValorLabel.content = 
+                    `${ultimoValor.toFixed(2)} KLBF`;
             }
 
-            chart.update('none'); // Usar 'none' para una actualización más suave
+            chart.update('none');
         }
 
         function createChart(fechas, datos) {
@@ -551,23 +548,29 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
+                        legend: {
+                            position: 'top'
+                        },
                         annotation: {
                             annotations: {
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    xValue: 1,
-                                    yValue: 190,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                    content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    },
-                                    padding: 6,
                                     position: {
                                         x: 'right',
                                         y: 'top'
-                                    }
+                                    },
+                                    xValue: 'max',
+                                    yValue: 'max',
+                                    xAdjust: -10,
+                                    yAdjust: -10,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                    content: `${ultimoValor.toFixed(2)} KLBF`,
+                                    font: {
+                                        size: 16,
+                                        weight: 'bold'
+                                    },
+                                    padding: 8,
+                                    borderRadius: 4
                                 },
                                 zonaTrabajoNormal: {
                                     type: 'box',
@@ -615,12 +618,7 @@
                                 text: 'Tensión (KLBF)'
                             },
                             min: 0,
-                            max: 200,
-                            ticks: {
-                                callback: function(value) {
-                                    return Math.floor(value * 100) / 100;
-                                }
-                            }
+                            max: 200
                         }
                     }
                 }
@@ -763,7 +761,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.isRaspiUser) {
-                            fetchData();
+        fetchData();
                             // Asegurar que la opacidad se mantenga después de la actualización
                             setTimeout(() => {
                                 updateChartZonesOpacity(currentOpacity / 100);
