@@ -465,13 +465,18 @@
             const isTestUser = newData.isRaspiUser;
 
             // Actualizar el último valor
-            const ultimoValor = isTestUser ? 
-                newData.medicion[newData.medicion.length - 1] : 
-                newData.perno_1[newData.perno_1.length - 1];
+            let ultimoValor = null;
+            for (let i = newData.perno_1.length - 1; i >= 0; i--) {
+                if (newData.perno_1[i] > 0) {
+                    ultimoValor = newData.perno_1[i];
+                    break;
+                }
+            }
 
-            // Actualizar solo el contenido del label sin mover su posición
-            chart.options.plugins.annotation.annotations.ultimoValorLabel.content = 
-                [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
+            if (ultimoValor !== null) {
+                chart.options.plugins.annotation.annotations.ultimoValorLabel.content = 
+                    [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
+            }
 
             // Mantener la animación suave solo para el desplazamiento horizontal
             chart.options.animation = {
@@ -530,12 +535,14 @@
                 chart.destroy();
             }
 
-            const isTestUser = datos.isRaspiUser;
-            
-            // Obtener el último valor
-            const ultimoValor = isTestUser ? 
-                datos.medicion[datos.medicion.length - 1] : 
-                datos.perno_1[datos.perno_1.length - 1];
+            // Obtener el último valor válido
+            let ultimoValor = null;
+            for (let i = datos.perno_1.length - 1; i >= 0; i--) {
+                if (datos.perno_1[i] > 0) {
+                    ultimoValor = datos.perno_1[i];
+                    break;
+                }
+            }
 
             // Configurar escala Y
             const yAxisConfig = {
@@ -552,7 +559,7 @@
                 }
             };
 
-            const datasets = isTestUser ? [
+            const datasets = datos.isRaspiUser ? [
                 {
                     label: 'Medición',
                     data: datos.medicion,
@@ -620,23 +627,34 @@
                         tooltip: { enabled: false },
                         annotation: {
                             annotations: {
+                                ultimoValorBox: {
+                                    type: 'box',
+                                    xMin: 'max',
+                                    xMax: 'max',
+                                    yMin: 0,
+                                    yMax: 40,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                    borderColor: 'rgba(0, 0, 0, 0.1)',
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    xAdjust: -80,
+                                },
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    position: 'chartArea',
-                                    xValue: 'right',
-                                    yValue: 'top',
-                                    xAdjust: -100,  // Ajustar posición horizontal
-                                    yAdjust: 30,    // Mover más abajo
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                                    position: {
+                                        x: 'right',
+                                        y: 'bottom'
+                                    },
+                                    xValue: 'max',
+                                    yValue: 20,
+                                    xAdjust: -60,
+                                    color: 'black',
                                     font: {
                                         size: 14,
                                         weight: 'bold'
                                     },
-                                    padding: 8,
-                                    borderRadius: 4,
-                                    color: 'black',
-                                    textAlign: 'right'
+                                    textAlign: 'center'
                                 },
                                 zonaTrabajoNormal: {
                                     type: 'box',
@@ -683,7 +701,7 @@
                 }
             });
 
-            if (!isTestUser) {
+            if (!datos.isRaspiUser) {
                 createZoneLegend();
             }
         }
