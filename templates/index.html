@@ -315,6 +315,13 @@
         </div>
     </div>
     
+    <div id="ultimoValorContainer" style="text-align: right; margin-right: 20px; margin-bottom: 10px;">
+        <div style="display: inline-block; padding: 10px; background-color: white; border-radius: 4px;">
+            <div style="font-size: 18px; font-weight: bold;">Ultimo Valor:</div>
+            <div id="ultimoValorTexto" style="font-size: 24px; font-weight: bold;">-- KLBF</div>
+        </div>
+    </div>
+    
     <div id="zonasContainer" class="zonas-container hidden">
         <h3>Configuración de Zonas</h3>
         <div class="zona-config">
@@ -473,9 +480,10 @@
                 }
             }
 
+            // Actualizar el valor en el contenedor
             if (ultimoValor !== null) {
-                chart.options.plugins.annotation.annotations.ultimoValorBox.label.content = 
-                    [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
+                document.getElementById('ultimoValorTexto').textContent = 
+                    `${ultimoValor.toFixed(2)} KLBF`;
             }
 
             // Mantener la animación suave solo para el desplazamiento horizontal
@@ -542,6 +550,12 @@
                     ultimoValor = datos.perno_1[i];
                     break;
                 }
+            }
+
+            // Actualizar el valor en el contenedor
+            if (ultimoValor !== null) {
+                document.getElementById('ultimoValorTexto').textContent = 
+                    `${ultimoValor.toFixed(2)} KLBF`;
             }
 
             // Configurar escala Y
@@ -627,29 +641,6 @@
                         tooltip: { enabled: false },
                         annotation: {
                             annotations: {
-                                ultimoValorBox: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    xMin: '85%',
-                                    xMax: '100%',
-                                    yMin: 0,
-                                    yMax: 60,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                    borderColor: 'rgba(0, 0, 0, 0.1)',
-                                    borderWidth: 1,
-                                    borderRadius: 4,
-                                    label: {
-                                        display: true,
-                                        content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
-                                        position: 'center',
-                                        color: 'black',
-                                        font: {
-                                            size: 14,
-                                            weight: 'bold'
-                                        }
-                                    }
-                                },
                                 zonaTrabajoNormal: {
                                     type: 'box',
                                     xScaleID: 'x',
