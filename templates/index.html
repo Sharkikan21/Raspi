@@ -449,26 +449,26 @@
             isRealTime = false;
         }
 
-        function updateRealTimeChart(data) {
-            if (!chart) return;
-            
-            chart.data.labels = data.fechas;
-            
-            // Actualizar datasets
-            Object.keys(data).forEach((key, index) => {
-                if (key.startsWith('perno_')) {
-                    const datasetIndex = parseInt(key.split('_')[1]) - 1;
-                    if (chart.data.datasets[datasetIndex]) {
-                        chart.data.datasets[datasetIndex].data = data[key];
-                    }
-                }
-            });
+        function updateRealTimeChart(newData) {
+            if (!chart) {
+                createChart(newData.fechas, newData);
+                return;
+            }
 
-            // Actualizar solo el contenido de la etiqueta del último valor
+            const existingLabels = chart.data.labels;
+            const newLabels = newData.fechas.filter(fecha => 
+                !existingLabels.includes(fecha)
+            );
+
+            if (newLabels.length === 0) return;
+
+            const isTestUser = newData.isRaspiUser;
+
+            // Actualizar el último valor
             let ultimoValor = null;
-            for (let i = data.perno_1.length - 1; i >= 0; i--) {
-                if (data.perno_1[i] > 0) {
-                    ultimoValor = data.perno_1[i];
+            for (let i = newData.perno_1.length - 1; i >= 0; i--) {
+                if (newData.perno_1[i] > 0) {
+                    ultimoValor = newData.perno_1[i];
                     break;
                 }
             }
@@ -478,11 +478,58 @@
                     [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
             }
 
-            chart.update('none');
+            // Mantener la animación suave solo para el desplazamiento horizontal
+            chart.options.animation = {
+                x: {
+                    duration: 0,  // Sin animación en X para un desplazamiento inmediato
+                    easing: 'linear'
+                },
+                y: false  // Desactivar animación en Y para mantener posición vertical
+            };
+
+            // Actualizar datos manteniendo la posición vertical
+            if (isTestUser) {
+                const newDataPoints = newData.medicion.slice(-1);
+                const dataset = chart.data.datasets[0];
+                
+                // Desplazar datos manteniendo el máximo de puntos
+                dataset.data.push(...newDataPoints);
+                if (dataset.data.length > MAX_POINTS) {
+                    dataset.data.shift();  // Eliminar el primer punto
+                }
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    const pernoKey = `perno_${i+1}`;
+                    if (newData[pernoKey]) {
+                        const newDataPoints = newData[pernoKey].slice(-1);
+                        const dataset = chart.data.datasets[i];
+                        
+                        dataset.data.push(...newDataPoints);
+                        if (dataset.data.length > MAX_POINTS) {
+                            dataset.data.shift();
+                        }
+                    }
+                }
+            }
+
+            // Actualizar etiquetas de tiempo
+            chart.data.labels.push(...newLabels);
+            if (chart.data.labels.length > MAX_POINTS) {
+                chart.data.labels.shift();
+            }
+
+            // Actualizar el gráfico con las nuevas configuraciones
+            chart.update({
+                duration: 0,
+                easing: 'linear',
+                lazy: false,
+                mode: 'none'
+            });
         }
 
         function createChart(fechas, datos) {
             const ctx = document.getElementById('myChart').getContext('2d');
+            const opacity = currentOpacity / 100;
             
             if (chart) {
                 chart.destroy();
@@ -497,61 +544,166 @@
                 }
             }
 
+            // Configurar escala Y
+            const yAxisConfig = {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: 200,
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            };
+
+            const datasets = datos.isRaspiUser ? [
+                {
+                    label: 'Medición',
+                    data: datos.medicion,
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ] : [
+                {
+                    label: 'Dato 1',
+                    data: datos.perno_1,
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 2',
+                    data: datos.perno_2,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 3',
+                    data: datos.perno_3,
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 4',
+                    data: datos.perno_4,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                },
+                {
+                    label: 'Dato 5',
+                    data: datos.perno_5,
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ];
+
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: fechas,
-                    datasets: [
-                        {
-                            label: 'Medición',
-                            data: datos.medicion,
-                            borderColor: 'rgba(0, 255, 255, 1)',
-                            backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4
-                        }
-                    ]
+                    datasets: datasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    events: [],
+                    hover: { mode: null },
                     plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
                         annotation: {
                             annotations: {
                                 ultimoValorBox: {
                                     type: 'box',
-                                    drawTime: 'beforeDatasetsDraw',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
+                                    xMin: 'max',
+                                    xMax: 'max',
                                     yMin: 0,
-                                    yMax: 90,
-                                    xMin: '80%',
-                                    xMax: '100%',
+                                    yMax: 40,
                                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                     borderColor: 'rgba(0, 0, 0, 0.1)',
                                     borderWidth: 1,
-                                    borderRadius: 4
+                                    borderRadius: 4,
+                                    xAdjust: -80,
                                 },
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    drawTime: 'beforeDatasetsDraw',
                                     content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                                    position: {
+                                        x: 'right',
+                                        y: 'bottom'
+                                    },
+                                    xValue: 'max',
+                                    yValue: 20,
+                                    xAdjust: -60,
+                                    color: 'black',
                                     font: {
                                         size: 14,
                                         weight: 'bold'
                                     },
-                                    color: 'black',
+                                    textAlign: 'center'
+                                },
+                                zonaTrabajoNormal: {
+                                    type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    xValue: '90%',
-                                    yValue: 45,
-                                    textAlign: 'center'
+                                    yMin: zonasConfig.trabajo.min,
+                                    yMax: zonasConfig.trabajo.max,
+                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaObservacion: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.observacion.min,
+                                    yMax: zonasConfig.observacion.max,
+                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaCritica: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.critica.min,
+                                    yMax: zonasConfig.critica.max,
+                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
+                                    borderColor: 'transparent'
                                 }
                             }
                         }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: yAxisConfig
                     }
                 }
             });
+
+            if (!datos.isRaspiUser) {
+                createZoneLegend();
+            }
         }
 
         function createZoneLegend() {
