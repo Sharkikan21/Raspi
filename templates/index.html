@@ -469,10 +469,9 @@
                 newData.medicion[newData.medicion.length - 1] : 
                 newData.perno_1[newData.perno_1.length - 1];
 
-            // Actualizar solo el contenido del label sin recrearlo
-            const ultimoValorLabel = chart.options.plugins.annotation.annotations.ultimoValorLabel;
-            ultimoValorLabel.content = [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
-            ultimoValorLabel.yValue = ultimoValor;
+            // Actualizar solo el contenido del label sin mover su posición
+            chart.options.plugins.annotation.annotations.ultimoValorLabel.content = 
+                [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
 
             // Mantener la animación suave solo para el desplazamiento horizontal
             chart.options.animation = {
@@ -621,24 +620,23 @@
                         tooltip: { enabled: false },
                         annotation: {
                             annotations: {
-                                // Agregar anotación para el último valor
                                 ultimoValorLabel: {
                                     type: 'label',
-                                    xValue: fechas.length - 1,
-                                    yValue: ultimoValor,
-                                    xAdjust: -80,
-                                    yAdjust: -30,
+                                    position: 'chartArea',
+                                    xValue: 'right',
+                                    yValue: 'top',
+                                    xAdjust: -100,  // Ajustar posición horizontal
+                                    yAdjust: 30,    // Mover más abajo
                                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
                                     font: {
                                         size: 14,
                                         weight: 'bold'
                                     },
-                                    position: {
-                                        x: 'end',
-                                        y: 'top'
-                                    },
-                                    padding: 8
+                                    padding: 8,
+                                    borderRadius: 4,
+                                    color: 'black',
+                                    textAlign: 'right'
                                 },
                                 zonaTrabajoNormal: {
                                     type: 'box',
