@@ -474,7 +474,7 @@
             }
 
             if (ultimoValor !== null) {
-                chart.options.plugins.annotation.annotations.ultimoValorLabel.content = 
+                chart.options.plugins.annotation.annotations.ultimoValorBox.label.content = 
                     [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`];
             }
 
@@ -629,32 +629,26 @@
                             annotations: {
                                 ultimoValorBox: {
                                     type: 'box',
-                                    xMin: 'max',
-                                    xMax: 'max',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    xMin: '85%',
+                                    xMax: '100%',
                                     yMin: 0,
-                                    yMax: 40,
+                                    yMax: 60,
                                     backgroundColor: 'rgba(255, 255, 255, 0.9)',
                                     borderColor: 'rgba(0, 0, 0, 0.1)',
                                     borderWidth: 1,
                                     borderRadius: 4,
-                                    xAdjust: -80,
-                                },
-                                ultimoValorLabel: {
-                                    type: 'label',
-                                    content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
-                                    position: {
-                                        x: 'right',
-                                        y: 'bottom'
-                                    },
-                                    xValue: 'max',
-                                    yValue: 20,
-                                    xAdjust: -60,
-                                    color: 'black',
-                                    font: {
-                                        size: 14,
-                                        weight: 'bold'
-                                    },
-                                    textAlign: 'center'
+                                    label: {
+                                        display: true,
+                                        content: [`Último valor:`, `${ultimoValor.toFixed(2)} KLBF`],
+                                        position: 'center',
+                                        color: 'black',
+                                        font: {
+                                            size: 14,
+                                            weight: 'bold'
+                                        }
+                                    }
                                 },
                                 zonaTrabajoNormal: {
                                     type: 'box',
