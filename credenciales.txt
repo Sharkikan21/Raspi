@@ -2,3 +2,5 @@ admin password123
 raspi_1 raspi
 raspi_2 raspi2
 test test123
+ras1 ras123
+ras2 ras123
