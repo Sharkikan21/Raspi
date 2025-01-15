@@ -61,11 +61,8 @@ def get_db_data():
 
         # Base query según el rol del usuario
         if session['role'] == 'admin':
-            if after_timestamp or (not fecha_inicio and not fecha_fin):
-                # Para tiempo real o sin filtros, mostrar todas las Raspberries
-                base_query = 'SELECT * FROM public.tension'
-                params = []
-            elif 'selected_raspberry' in session:
+            if 'selected_raspberry' in session:
+                # Siempre filtrar por la raspberry seleccionada para admins
                 base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
                 params = [int(session['selected_raspberry'])]
             else:
@@ -78,11 +75,12 @@ def get_db_data():
             """
             params = [session['user_id']]
 
+        # Agregar condiciones adicionales
         if after_timestamp:
-            base_query += ' AND fecha > %s' if 'WHERE' in base_query else ' WHERE fecha > %s'
+            base_query += ' AND fecha > %s'
             params.append(after_timestamp)
         elif fecha_inicio and fecha_fin:
-            base_query += ' AND fecha >= %s AND fecha <= %s' if 'WHERE' in base_query else ' WHERE fecha >= %s AND fecha <= %s'
+            base_query += ' AND fecha >= %s AND fecha <= %s'
             try:
                 fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
                 fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
