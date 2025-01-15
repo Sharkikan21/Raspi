@@ -121,6 +121,7 @@ def get_db_data():
         if format_type == 'html':
             # Crear un diccionario para renombrar las columnas
             column_names = {
+                'id': 'id',
                 'fecha': 'Fecha y Hora',
                 'perno_1': 'Dato 1',
                 'perno_2': 'Dato 2',
@@ -129,6 +130,14 @@ def get_db_data():
                 'perno_5': 'Dato 5',
                 'raspberry_id': 'ID Raspberry'
             }
+            
+            # Asegurarnos de que la columna id esté presente en el DataFrame
+            if 'id' not in df.columns:
+                df['id'] = df.index + 1  # Crear una columna id si no existe
+            
+            # Reordenar las columnas para que id aparezca primero
+            column_order = ['id', 'fecha', 'perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5', 'raspberry_id']
+            df = df[column_order]
             
             # Renombrar las columnas
             df = df.rename(columns=column_names)
