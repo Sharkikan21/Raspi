@@ -117,7 +117,25 @@ def get_db_data():
                 columnas_validas.append(col)
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
-        if format_type == 'json':
+        # Renombrar las columnas antes de convertir a HTML
+        if format_type == 'html':
+            # Crear un diccionario para renombrar las columnas
+            column_names = {
+                'fecha': 'Fecha y Hora',
+                'perno_1': 'Dato 1',
+                'perno_2': 'Dato 2',
+                'perno_3': 'Dato 3',
+                'perno_4': 'Dato 4',
+                'perno_5': 'Dato 5',
+                'raspberry_id': 'ID Raspberry'
+            }
+            
+            # Renombrar las columnas
+            df = df.rename(columns=column_names)
+            
+            return df.to_html(classes='table table-striped', index=False)
+        else:
+            # Para formato JSON mantener los nombres originales
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
                 'isAdmin': session['role'] == 'admin'
@@ -125,14 +143,9 @@ def get_db_data():
             # Solo incluir columnas válidas en el JSON
             for col in columnas_validas:
                 data[col] = df[col].tolist()
-            # Incluir raspberry_id para administradores
             if session['role'] == 'admin':
                 data['raspberry_ids'] = df['raspberry_id'].tolist()
             return jsonify(data)
-        else:
-            # Seleccionar solo las columnas válidas para la tabla HTML
-            columns_to_show = ['fecha'] + columnas_validas + ['raspberry_id']
-            return df[columns_to_show].to_html(classes='table table-striped', index=False)
 
     except Exception as e:
         print(f"Database error: {e}")
