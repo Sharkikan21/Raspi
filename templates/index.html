@@ -563,18 +563,17 @@
                     label: 'Dato 1',
                     data: datos.perno_1,
                     borderColor: 'rgba(0, 255, 255, 1)',
-                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     tension: 0.4,
-                    pointRadius: 0,  // Ocultar puntos
-                    borderDash: [5, 5]  // Línea punteada
+                    pointRadius: 0
                 },
                 {
                     label: 'Dato 2',
                     data: datos.perno_2,
                     borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     tension: 0.4,
                     pointRadius: 0
                 },
@@ -582,18 +581,17 @@
                     label: 'Dato 3',
                     data: datos.perno_3,
                     borderColor: 'rgba(255, 206, 86, 1)',
-                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     tension: 0.4,
-                    pointRadius: 0,
-                    borderDash: [10, 5]
+                    pointRadius: 0
                 },
                 {
                     label: 'Dato 4',
                     data: datos.perno_4,
                     borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     tension: 0.4,
                     pointRadius: 0
                 },
@@ -601,48 +599,12 @@
                     label: 'Dato 5',
                     data: datos.perno_5,
                     borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
-                    borderWidth: 2,
+                    backgroundColor: 'transparent',
+                    borderWidth: 1.5,
                     tension: 0.4,
-                    pointRadius: 0,
-                    borderDash: [15, 5]
+                    pointRadius: 0
                 }
             ];
-
-            // Configuración de la animación
-            const animation = {
-                x: {
-                    type: 'number',
-                    easing: 'linear',
-                    duration: 500,
-                    from: NaN,
-                    delay(ctx) {
-                        if (ctx.type !== 'data' || ctx.xStarted) {
-                            return 0;
-                        }
-                        ctx.xStarted = true;
-                        return ctx.index * 20;
-                    }
-                },
-                y: {
-                    type: 'number',
-                    easing: 'linear',
-                    duration: 500,
-                    from: previousY,
-                    delay(ctx) {
-                        if (ctx.type !== 'data' || ctx.yStarted) {
-                            return 0;
-                        }
-                        ctx.yStarted = true;
-                        return ctx.index * 20;
-                    }
-                }
-            };
-
-            function previousY(ctx) {
-                return ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(100) : 
-                    ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(['y'], true).y;
-            }
 
             chart = new Chart(ctx, {
                 type: 'line',
@@ -653,7 +615,12 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation,
+                    animation: {
+                        duration: 0
+                    },
+                    interaction: {
+                        intersect: false
+                    },
                     plugins: {
                         legend: { display: false },
                         annotation: {
@@ -690,6 +657,13 @@
                     },
                     scales: {
                         x: {
+                            type: 'time',
+                            time: {
+                                unit: 'second',
+                                displayFormats: {
+                                    second: 'HH:mm:ss'
+                                }
+                            },
                             title: {
                                 display: true,
                                 text: 'Fecha y Hora'
@@ -699,6 +673,7 @@
                             }
                         },
                         y: {
+                            beginAtZero: true,
                             title: {
                                 display: true,
                                 text: 'Tensión (KLBF)'
