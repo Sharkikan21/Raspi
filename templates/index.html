@@ -786,6 +786,147 @@
             
             chart.update('none');
         }
+
+        function createChart(fechas, datos) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const opacity = currentOpacity / 100;
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            // Configurar escala Y
+            const yAxisConfig = {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: 200,
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            };
+
+            const datasets = [
+                {
+                    label: 'Dato 1',
+                    data: datos.perno_1,
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(1)
+                },
+                {
+                    label: 'Dato 2',
+                    data: datos.perno_2,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(2)
+                },
+                {
+                    label: 'Dato 3',
+                    data: datos.perno_3,
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(3)
+                },
+                {
+                    label: 'Dato 4',
+                    data: datos.perno_4,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(4)
+                },
+                {
+                    label: 'Dato 5',
+                    data: datos.perno_5,
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(5)
+                }
+            ];
+
+            // Actualizar los últimos valores
+            updateUltimosValores(datos);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: fechas,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                zonaTrabajoNormal: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.trabajo.min,
+                                    yMax: zonasConfig.trabajo.max,
+                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaObservacion: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.observacion.min,
+                                    yMax: zonasConfig.observacion.max,
+                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaCritica: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.critica.min,
+                                    yMax: zonasConfig.critica.max,
+                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: yAxisConfig
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
