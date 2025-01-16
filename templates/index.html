@@ -426,12 +426,15 @@
                 filterControls.classList.add('disabled');
                 
                 // Obtener el último dato y comenzar desde allí
-                fetch('/data?format=json&limit=1')
+                fetch('/data?format=json&limit=50')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
                             createChart(data.fechas, data);
+                            if (realTimeInterval) {
+                                clearInterval(realTimeInterval);
+                            }
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
                     });
@@ -467,7 +470,24 @@
                 .then(data => {
                     if (data.fechas && data.fechas.length > 0) {
                         lastTimestamp = data.fechas[data.fechas.length - 1];
-                        updateChartData(data);
+                        
+                        // Actualizar datos del gráfico
+                        if (chart) {
+                            chart.data.labels = data.fechas;
+                            chart.data.datasets.forEach((dataset, index) => {
+                                const pernoNum = index + 1;
+                                const pernoKey = `perno_${pernoNum}`;
+                                if (selectedPernos.has(pernoNum) && data[pernoKey]) {
+                                    dataset.data = data[pernoKey];
+                                    dataset.hidden = false;
+                                } else {
+                                    dataset.hidden = true;
+                                }
+                            });
+                            chart.update('none');
+                        }
+                        
+                        // Actualizar últimos valores
                         updateUltimosValores(data);
                     }
                 })
@@ -477,22 +497,15 @@
                 });
         }
 
-        function updateChartData(newData) {
-            if (!chart) return;
-
-            // Actualizar solo los datasets seleccionados
-            chart.data.labels = newData.fechas;
-            chart.data.datasets.forEach((dataset, index) => {
-                const pernoNum = index + 1;
-                if (selectedPernos.has(pernoNum)) {
-                    dataset.data = newData[`perno_${pernoNum}`];
-                    dataset.hidden = false;
-                } else {
-                    dataset.hidden = true;
-                }
-            });
-
-            chart.update('none');
+        function updateUltimosValores(datos) {
+            for (let i = 1; i <= 5; i++) {
+                const pernoKey = `perno_${i}`;
+                const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
+                    datos[pernoKey][datos[pernoKey].length - 1] : null;
+                
+                document.getElementById(`valor-perno${i}`).textContent = 
+                    valor !== null ? valor.toFixed(2) : '--';
+            }
         }
 
         function updateTable() {
