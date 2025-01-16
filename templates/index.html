@@ -558,51 +558,70 @@
                     `${ultimoValor.toFixed(2)} KLBF`;
             }
 
-            const datasets = [
+            // Configurar escala Y
+            const yAxisConfig = {
+                title: {
+                    display: true,
+                    text: 'Tensión (KLBF)'
+                },
+                min: 0,
+                max: 200,
+                ticks: {
+                    callback: function(value) {
+                        return Math.floor(value * 100) / 100;
+                    }
+                }
+            };
+
+            const datasets = datos.isRaspiUser ? [
+                {
+                    label: 'Medición',
+                    data: datos.medicion,
+                    borderColor: 'rgba(0, 255, 255, 1)',
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
+                }
+            ] : [
                 {
                     label: 'Dato 1',
                     data: datos.perno_1,
                     borderColor: 'rgba(0, 255, 255, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    tension: 0.4,
-                    pointRadius: 0
+                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
                 },
                 {
                     label: 'Dato 2',
                     data: datos.perno_2,
                     borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    tension: 0.4,
-                    pointRadius: 0
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
                 },
                 {
                     label: 'Dato 3',
                     data: datos.perno_3,
                     borderColor: 'rgba(255, 206, 86, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    tension: 0.4,
-                    pointRadius: 0
+                    backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
                 },
                 {
                     label: 'Dato 4',
                     data: datos.perno_4,
                     borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    tension: 0.4,
-                    pointRadius: 0
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
                 },
                 {
                     label: 'Dato 5',
                     data: datos.perno_5,
                     borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1.5,
-                    tension: 0.4,
-                    pointRadius: 0
+                    backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4
                 }
             ];
 
@@ -615,14 +634,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    animation: {
-                        duration: 0
-                    },
-                    interaction: {
-                        intersect: false
-                    },
+                    events: [],
+                    hover: { mode: null },
                     plugins: {
                         legend: { display: false },
+                        tooltip: { enabled: false },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
@@ -657,13 +673,6 @@
                     },
                     scales: {
                         x: {
-                            type: 'time',
-                            time: {
-                                unit: 'second',
-                                displayFormats: {
-                                    second: 'HH:mm:ss'
-                                }
-                            },
                             title: {
                                 display: true,
                                 text: 'Fecha y Hora'
@@ -672,15 +681,7 @@
                                 maxTicksLimit: 10
                             }
                         },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200
-                        }
+                        y: yAxisConfig
                     }
                 }
             });
