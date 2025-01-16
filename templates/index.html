@@ -575,21 +575,6 @@
                 chart.destroy();
             }
 
-            // Obtener el último valor válido
-            let ultimoValor = null;
-            for (let i = datos.perno_1.length - 1; i >= 0; i--) {
-                if (datos.perno_1[i] > 0) {
-                    ultimoValor = datos.perno_1[i];
-                    break;
-                }
-            }
-
-            // Actualizar el valor en el contenedor
-            if (ultimoValor !== null) {
-                document.getElementById('ultimoValorTexto').textContent = 
-                    `${ultimoValor.toFixed(2)} KLBF`;
-            }
-
             // Configurar escala Y
             const yAxisConfig = {
                 title: {
@@ -665,11 +650,11 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    events: [],
-                    hover: { mode: null },
+                    animation: {
+                        duration: 0
+                    },
                     plugins: {
                         legend: { display: false },
-                        tooltip: { enabled: false },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
