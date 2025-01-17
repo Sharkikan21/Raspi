@@ -475,7 +475,6 @@
                         
                         // Actualizar datos del gráfico
                         if (chart) {
-                            // Mantener solo los últimos 50 puntos
                             const maxPoints = 50;
                             let labels = [...chart.data.labels];
                             labels = labels.concat(data.fechas);
@@ -495,8 +494,6 @@
                                     }
                                     dataset.data = newData;
                                     dataset.hidden = false;
-                                } else {
-                                    dataset.hidden = true;
                                 }
                             });
                             chart.update('none');
@@ -504,9 +501,7 @@
                         
                         // Actualizar últimos valores y tabla
                         updateUltimosValores(data);
-                        if (tableVisible) {
-                            updateTableRealTime();
-                        }
+                        updateTableRealTime();
                     }
                 })
                 .catch(error => {
@@ -541,12 +536,17 @@
             tableVisible = !tableVisible;
             
             if (tableVisible) {
-                tableDiv.classList.remove('hidden');
                 btn.textContent = 'Ocultar Tabla';
-                fetchData(); // Cargar datos de la tabla
+                // Cargar los últimos 10 datos al mostrar la tabla
+                fetch('/data?limit=10')
+                    .then(response => response.text())
+                    .then(html => {
+                        tableDiv.innerHTML = html;
+                        tableDiv.classList.remove('hidden');
+                    });
             } else {
-                tableDiv.classList.add('hidden');
                 btn.textContent = 'Mostrar Tabla';
+                tableDiv.classList.add('hidden');
             }
         }
 
@@ -957,23 +957,31 @@
         }
 
         function updateTableRealTime() {
-            fetch('/data?limit=1')
+            if (!tableVisible) return;
+
+            fetch('/data?limit=10')
                 .then(response => response.text())
                 .then(html => {
                     const tableDiv = document.getElementById('csv-table');
                     if (tableDiv) {
-                        // Si ya existe una tabla, actualizar solo la primera fila de datos
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = html;
-                        const newRow = tempDiv.querySelector('tr:nth-child(2)');
+                        const newTable = tempDiv.querySelector('table');
                         const existingTable = tableDiv.querySelector('table');
                         
-                        if (existingTable && newRow) {
-                            const firstDataRow = existingTable.querySelector('tr:nth-child(2)');
-                            if (firstDataRow) {
-                                firstDataRow.parentNode.insertBefore(newRow, firstDataRow);
-                                firstDataRow.remove();
-                            }
+                        if (existingTable && newTable) {
+                            // Mantener las primeras 10 filas
+                            const rows = Array.from(newTable.querySelectorAll('tr'));
+                            const headerRow = rows[0];
+                            const dataRows = rows.slice(1, 11); // Tomar solo las primeras 10 filas de datos
+                            
+                            const newTableHtml = document.createElement('table');
+                            newTableHtml.className = existingTable.className;
+                            newTableHtml.appendChild(headerRow.cloneNode(true));
+                            dataRows.forEach(row => newTableHtml.appendChild(row.cloneNode(true)));
+                            
+                            tableDiv.innerHTML = '';
+                            tableDiv.appendChild(newTableHtml);
                         } else {
                             tableDiv.innerHTML = html;
                         }
