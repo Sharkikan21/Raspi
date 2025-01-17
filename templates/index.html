@@ -425,6 +425,11 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 
+                // Limpiar intervalo existente si hay uno
+                if (realTimeInterval) {
+                    clearInterval(realTimeInterval);
+                }
+                
                 // Obtener el último dato y comenzar desde allí
                 fetch('/data?format=json&limit=50')
                     .then(response => response.json())
@@ -432,9 +437,6 @@
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
                             createChart(data.fechas, data);
-                            if (realTimeInterval) {
-                                clearInterval(realTimeInterval);
-                            }
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
                     });
@@ -473,12 +475,25 @@
                         
                         // Actualizar datos del gráfico
                         if (chart) {
-                            chart.data.labels = data.fechas;
+                            // Mantener solo los últimos 50 puntos
+                            const maxPoints = 50;
+                            let labels = [...chart.data.labels];
+                            labels = labels.concat(data.fechas);
+                            if (labels.length > maxPoints) {
+                                labels = labels.slice(-maxPoints);
+                            }
+                            chart.data.labels = labels;
+
                             chart.data.datasets.forEach((dataset, index) => {
                                 const pernoNum = index + 1;
                                 const pernoKey = `perno_${pernoNum}`;
                                 if (selectedPernos.has(pernoNum) && data[pernoKey]) {
-                                    dataset.data = data[pernoKey];
+                                    let newData = [...dataset.data];
+                                    newData = newData.concat(data[pernoKey]);
+                                    if (newData.length > maxPoints) {
+                                        newData = newData.slice(-maxPoints);
+                                    }
+                                    dataset.data = newData;
                                     dataset.hidden = false;
                                 } else {
                                     dataset.hidden = true;
@@ -487,8 +502,11 @@
                             chart.update('none');
                         }
                         
-                        // Actualizar últimos valores
+                        // Actualizar últimos valores y tabla
                         updateUltimosValores(data);
+                        if (tableVisible) {
+                            updateTableRealTime();
+                        }
                     }
                 })
                 .catch(error => {
@@ -623,31 +641,28 @@
         fetchData(); // Carga inicial
 
         function updateZonas() {
-            zonasConfig = {
-                trabajo: {
-                    min: parseFloat(document.getElementById('zonaTrabajoMin').value) || 115,
-                    max: parseFloat(document.getElementById('zonaTrabajoMax').value) || 175
-                },
-                observacion: {
-                    min: parseFloat(document.getElementById('zonaObservacionMin').value) || 90,
-                    max: parseFloat(document.getElementById('zonaObservacionMax').value) || 115
-                },
-                critica: {
-                    min: 0,
-                    max: parseFloat(document.getElementById('zonaCriticaMax').value) || 90
-                }
-            };
-            
-            actualizarZonasEnGrafico();
-            
-            // Si estamos en tiempo real, reiniciar el intervalo
-            if (isRealTime) {
-                if (realTimeInterval) {
-                    clearInterval(realTimeInterval);
-                }
-                realTimeInterval = setInterval(fetchRealTimeData, 5000);
-            } else {
-                fetchData(); // Si no estamos en tiempo real, actualizar los datos normalmente
+            // Obtener los valores actuales
+            zonasConfig.trabajo.min = parseFloat(document.getElementById('zonaTrabajoMin').value);
+            zonasConfig.trabajo.max = parseFloat(document.getElementById('zonaTrabajoMax').value);
+            zonasConfig.observacion.min = parseFloat(document.getElementById('zonaObservacionMin').value);
+            zonasConfig.observacion.max = parseFloat(document.getElementById('zonaObservacionMax').value);
+            zonasConfig.critica.max = parseFloat(document.getElementById('zonaCriticaMax').value);
+
+            // Actualizar las anotaciones del gráfico
+            if (chart) {
+                const opacity = currentOpacity / 100;
+                const annotations = chart.options.plugins.annotation.annotations;
+                
+                annotations.zonaTrabajoNormal.yMin = zonasConfig.trabajo.min;
+                annotations.zonaTrabajoNormal.yMax = zonasConfig.trabajo.max;
+                
+                annotations.zonaObservacion.yMin = zonasConfig.observacion.min;
+                annotations.zonaObservacion.yMax = zonasConfig.observacion.max;
+                
+                annotations.zonaCritica.yMin = 0;
+                annotations.zonaCritica.yMax = zonasConfig.critica.max;
+
+                chart.update('none');
             }
         }
 
@@ -939,6 +954,32 @@
                     }
                 }
             });
+        }
+
+        function updateTableRealTime() {
+            fetch('/data?limit=1')
+                .then(response => response.text())
+                .then(html => {
+                    const tableDiv = document.getElementById('csv-table');
+                    if (tableDiv) {
+                        // Si ya existe una tabla, actualizar solo la primera fila de datos
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        const newRow = tempDiv.querySelector('tr:nth-child(2)');
+                        const existingTable = tableDiv.querySelector('table');
+                        
+                        if (existingTable && newRow) {
+                            const firstDataRow = existingTable.querySelector('tr:nth-child(2)');
+                            if (firstDataRow) {
+                                firstDataRow.parentNode.insertBefore(newRow, firstDataRow);
+                                firstDataRow.remove();
+                            }
+                        } else {
+                            tableDiv.innerHTML = html;
+                        }
+                    }
+                })
+                .catch(error => console.error('Error updating table:', error));
         }
     </script>
 </body>
