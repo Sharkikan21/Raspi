@@ -281,6 +281,43 @@
         .valores-container strong {
             font-size: 16px;
         }
+        .gauge-container {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }   
+
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+
+        .gauge-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .gauge-item h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .gauge-item canvas {
+            width: 300px;
+            height: 150px;
+        }
+
+        .gauge-label {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -353,6 +390,37 @@
             <span>Perno 5: <strong id="valor-perno5">--</strong></span>
         </div>
     </div>
+
+    <div class="gauge-container">
+        <div class="gauge-grid">
+            <div class="gauge-item">
+                <h3>Perno 1</h3>
+                <canvas id="gaugeCanvas1"></canvas>
+                <div class="gauge-label"><span id="gaugeValue1">0</span> KLBF</div>
+            </div>
+            <div class="gauge-item">
+                <h3>Perno 2</h3>
+                <canvas id="gaugeCanvas2"></canvas>
+                <div class="gauge-label"><span id="gaugeValue2">0</span> KLBF</div>
+            </div>
+            <div class="gauge-item">
+                <h3>Perno 3</h3>
+                <canvas id="gaugeCanvas3"></canvas>
+                <div class="gauge-label"><span id="gaugeValue3">0</span> KLBF</div>
+            </div>
+            <div class="gauge-item">
+                <h3>Perno 4</h3>
+                <canvas id="gaugeCanvas4"></canvas>
+                <div class="gauge-label"><span id="gaugeValue4">0</span> KLBF</div>
+            </div>
+            <div class="gauge-item">
+                <h3>Perno 5</h3>
+                <canvas id="gaugeCanvas5"></canvas>
+                <div class="gauge-label"><span id="gaugeValue5">0</span> KLBF</div>
+            </div>
+        </div>
+    </div>
+    
     
     <div id="zonasContainer" class="zonas-container hidden">
         <h3>Configuración de Zonas</h3>
@@ -384,6 +452,26 @@
     <div class="data-container">
         <div class="chart-container">
             <canvas id="myChart"></canvas>
+            <div class="zone-legend">
+                <div class="legend-header">
+                    <span>Zonas de Operación</span>
+                    <button class="legend-toggle" onclick="toggleLegend()">−</button>
+                </div>
+                <div id="legend-content">
+                    <div class="legend-item">
+                        <div class="color-box normal"></div>
+                        <span>Zona de Trabajo Normal (115-175)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box observacion"></div>
+                        <span>Zona de Observación (90-115)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="color-box critica"></div>
+                        <span>Zona Crítica (0-90)</span>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div id="csv-table" class="hidden"></div>
@@ -414,6 +502,19 @@
         let selectedRaspberries = new Set();
         let currentOpacity = 20; // Cambiado de 40 a 20
         let isLegendMinimized = false;
+
+        const gauges = [];
+        const gaugeCanvases = [];
+        const ctxs = [];
+
+        // Inicializar los velocímetros
+        for (let i = 1; i <= 5; i++) {
+            const canvas = document.getElementById(`gaugeCanvas${i}`);
+            const ctx = canvas.getContext("2d");
+            gaugeCanvases.push(canvas);
+            ctxs.push(ctx);
+            gauges.push(0);
+        }
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -519,6 +620,7 @@
                 document.getElementById(`valor-perno${i}`).textContent = 
                     valor !== null ? valor.toFixed(2) : '--';
             }
+            updateGauges(datos);
         }
 
         function updateTable() {
@@ -989,6 +1091,108 @@
                 })
                 .catch(error => console.error('Error updating table:', error));
         }
+
+        function toggleLegend() {
+            const legendContent = document.getElementById('legend-content');
+            const toggleButton = document.querySelector('.legend-toggle');
+            
+            if (legendContent.style.display === 'none') {
+                legendContent.style.display = 'block';
+                toggleButton.textContent = '−';
+            } else {
+                legendContent.style.display = 'none';
+                toggleButton.textContent = '+';
+            }
+        }
+
+        function drawGauge(ctx, canvas, value) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height;
+            const radius = 120;
+
+            // Limpiar el canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Dibujar el fondo del velocímetro
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI);
+            ctx.fillStyle = "#eaeaea";
+            ctx.fill();
+
+            // Dibujar las zonas
+            drawZone(ctx, centerX, centerY, radius, Math.PI, Math.PI + (zonasConfig.critica.max / 200) * Math.PI, 'rgba(255, 0, 0, 0.2)');
+            drawZone(ctx, centerX, centerY, radius, Math.PI + (zonasConfig.observacion.min / 200) * Math.PI, Math.PI + (zonasConfig.observacion.max / 200) * Math.PI, 'rgba(255, 255, 0, 0.2)');
+            drawZone(ctx, centerX, centerY, radius, Math.PI + (zonasConfig.trabajo.min / 200) * Math.PI, Math.PI + (zonasConfig.trabajo.max / 200) * Math.PI, 'rgba(0, 200, 0, 0.2)');
+
+            // Dibujar la escala
+            for (let i = 0; i <= 10; i++) {
+                const angle = Math.PI + (i * Math.PI) / 10;
+                const x1 = centerX + Math.cos(angle) * (radius - 10);
+                const y1 = centerY + Math.sin(angle) * (radius - 10);
+                const x2 = centerX + Math.cos(angle) * radius;
+                const y2 = centerY + Math.sin(angle) * radius;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = "#333";
+                ctx.stroke();
+
+                // Añadir números en la escala
+                const labelAngle = angle;
+                const labelRadius = radius - 25;
+                const labelX = centerX + Math.cos(labelAngle) * labelRadius;
+                const labelY = centerY + Math.sin(labelAngle) * labelRadius;
+                
+                ctx.save();
+                ctx.translate(labelX, labelY);
+                ctx.rotate(labelAngle + Math.PI/2);
+                ctx.fillStyle = "#333";
+                ctx.textAlign = "center";
+                ctx.fillText((i * 20).toString(), 0, 0);
+                ctx.restore();
+            }
+
+            // Dibujar la aguja
+            const needleAngle = Math.PI + (value / 200) * Math.PI;
+            const needleX = centerX + Math.cos(needleAngle) * (radius - 20);
+            const needleY = centerY + Math.sin(needleAngle) * (radius - 20);
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(needleX, needleY);
+            ctx.strokeStyle = "#ff0000";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function drawZone(ctx, centerX, centerY, radius, startAngle, endAngle, color) {
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+            ctx.lineTo(centerX, centerY);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function updateGauges(datos) {
+            for (let i = 1; i <= 5; i++) {
+                const valor = parseFloat(document.getElementById(`valor-perno${i}`).textContent);
+                if (!isNaN(valor)) {
+                    gauges[i-1] = valor;
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    document.getElementById(`gaugeValue${i}`).textContent = valor.toFixed(2);
+                }
+            }
+        }
+
+        // Inicializar los velocímetros al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            for (let i = 0; i < 5; i++) {
+                drawGauge(ctxs[i], gaugeCanvases[i], 0);
+            }
+        });
+
     </script>
 </body>
 </html>
