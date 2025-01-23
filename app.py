@@ -127,7 +127,7 @@ def get_db_data():
                 'perno_3': 'Dato 3',
                 'perno_4': 'Dato 4',
                 'perno_5': 'Dato 5',
-                'raspberry_id': 'ID Raspberry'
+                'raspberry_id': 'Molino'
             }
             
             # Seleccionar y ordenar las columnas que queremos mostrar

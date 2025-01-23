@@ -750,6 +750,14 @@
             zonasConfig.observacion.max = parseFloat(document.getElementById('zonaObservacionMax').value);
             zonasConfig.critica.max = parseFloat(document.getElementById('zonaCriticaMax').value);
 
+            // Actualizar el texto en el recuadro de leyenda
+            document.querySelector('.legend-item:nth-child(1) span').textContent = 
+                `Zona de Trabajo Normal (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max})`;
+            document.querySelector('.legend-item:nth-child(2) span').textContent = 
+                `Zona de Observación (${zonasConfig.observacion.min}-${zonasConfig.observacion.max})`;
+            document.querySelector('.legend-item:nth-child(3) span').textContent = 
+                `Zona Crítica (0-${zonasConfig.critica.max})`;
+
             // Actualizar las anotaciones del gráfico
             if (chart) {
                 const opacity = currentOpacity / 100;
