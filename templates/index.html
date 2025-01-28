@@ -309,8 +309,8 @@
         }
 
         .gauge-item canvas {
-            width: 300px;
-            height: 150px;
+            width: 210px;
+            height: 105px;
         }
 
         .gauge-label {
@@ -1116,7 +1116,7 @@
         function drawGauge(ctx, canvas, value) {
             const centerX = canvas.width / 2;
             const centerY = canvas.height;
-            const radius = 120;
+            const radius = 84;
 
             // Limpiar el canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1172,6 +1172,9 @@
             ctx.strokeStyle = "#ff0000";
             ctx.lineWidth = 3;
             ctx.stroke();
+
+            // Ajustar tamaño de fuente para la escala
+            ctx.font = '10px Arial';  // Reducido el tamaño de la fuente para mantener proporción
         }
 
         function drawZone(ctx, centerX, centerY, radius, startAngle, endAngle, color) {

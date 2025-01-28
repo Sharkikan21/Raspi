@@ -38,6 +38,7 @@
 
         .form-group {
             margin-bottom: 1.5rem;
+            position: relative;
         }
 
         .form-group label {
@@ -85,6 +86,31 @@
             font-size: 0.9rem;
         }
 
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 65%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: #666;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+        }
+
+        .password-toggle:hover {
+            color: #333;
+        }
+
+        #password {
+            padding-right: 40px;
+        }
+
         @media (max-width: 480px) {
             .login-container {
                 margin: 1rem;
@@ -108,6 +134,9 @@
             <div class="form-group">
                 <label for="password">Contraseña</label>
                 <input type="password" id="password" name="password" required>
+                <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <i class="fas fa-eye"></i>
+                </button>
             </div>
             <button type="submit" class="submit-btn">Ingresar</button>
             {% if error %}
@@ -117,5 +146,24 @@
             {% endif %}
         </form>
     </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <script>
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.querySelector('.password-toggle i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.classList.remove('fa-eye');
+                toggleButton.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.classList.remove('fa-eye-slash');
+                toggleButton.classList.add('fa-eye');
+            }
+        }
+    </script>
 </body>
 </html>
