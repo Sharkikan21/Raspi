@@ -122,11 +122,11 @@ def get_db_data():
             # Crear un diccionario para renombrar las columnas
             column_names = {
                 'fecha': 'Fecha y Hora',
-                'perno_1': 'Dato 1',
-                'perno_2': 'Dato 2',
-                'perno_3': 'Dato 3',
-                'perno_4': 'Dato 4',
-                'perno_5': 'Dato 5',
+                'perno_1': 'Perno 1',
+                'perno_2': 'Perno 2',
+                'perno_3': 'Perno 3',
+                'perno_4': 'Perno 4',
+                'perno_5': 'Perno 5',
                 'raspberry_id': 'Molino'
             }
             
