@@ -629,7 +629,7 @@
                     clearInterval(realTimeInterval);
                 }
                 
-                // Obtener el último dato y comenzar desde allí
+                // Obtener datos iniciales y comenzar el monitoreo
                 fetch('/data?format=json&limit=50')
                     .then(response => response.json())
                     .then(data => {
@@ -638,6 +638,10 @@
                             createChart(data.fechas, data);
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        stopRealTime();
                     });
             } else {
                 stopRealTime();
@@ -674,33 +678,45 @@
                         
                         // Actualizar datos del gráfico
                         if (chart) {
-                            const maxPoints = 50;
+                            // Actualizar las etiquetas (fechas)
                             let labels = [...chart.data.labels];
                             labels = labels.concat(data.fechas);
-                            if (labels.length > maxPoints) {
-                                labels = labels.slice(-maxPoints);
+                            if (labels.length > MAX_POINTS) {
+                                labels = labels.slice(-MAX_POINTS);
                             }
                             chart.data.labels = labels;
 
+                            // Actualizar los datos de cada perno
                             chart.data.datasets.forEach((dataset, index) => {
                                 const pernoNum = index + 1;
                                 const pernoKey = `perno_${pernoNum}`;
-                                if (selectedPernos.has(pernoNum) && data[pernoKey]) {
+                                
+                                if (data[pernoKey]) {
                                     let newData = [...dataset.data];
                                     newData = newData.concat(data[pernoKey]);
-                                    if (newData.length > maxPoints) {
-                                        newData = newData.slice(-maxPoints);
+                                    if (newData.length > MAX_POINTS) {
+                                        newData = newData.slice(-MAX_POINTS);
                                     }
                                     dataset.data = newData;
-                                    dataset.hidden = false;
+                                    
+                                    // Asegurar que el dataset esté visible si está seleccionado
+                                    dataset.hidden = !selectedPernos.has(pernoNum);
                                 }
                             });
-                            chart.update('none');
+
+                            chart.update();
+                        } else {
+                            // Si no existe el gráfico, crearlo
+                            createChart(data.fechas, data);
                         }
                         
-                        // Actualizar últimos valores y tabla
+                        // Actualizar últimos valores y velocímetros
                         updateUltimosValores(data);
-                        updateTableRealTime();
+                        
+                        // Actualizar la tabla si está visible
+                        if (tableVisible) {
+                            updateTableRealTime();
+                        }
                     }
                 })
                 .catch(error => {
