@@ -5,7 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Datos de Tensión</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
+        @font-face {
+            font-family: 'Konkretika Black WIP';
+            src: url('{{ url_for("static", filename="fonts/Konkretika-Black-WIP.woff2") }}') format('woff2'),
+                 url('{{ url_for("static", filename="fonts/Konkretika-Black-WIP.woff") }}') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body { 
+            font-family: 'Konkretika Black WIP', Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+            background-color: #11333F;
+            color: #333;
+        }
+
+        .filter-container, .data-container, .ultimos-valores, .gauge-container, .zonas-container { 
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            padding: 20px;
+        }
+
+        /* Estilo para los títulos específicos */
+        .pernos-selector p,
+        .ultimos-valores h3,
+        .gauge-item h3 {
+            font-family: 'Konkretika Black WIP', Arial, sans-serif;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        /* Ajuste específico para "Seleccionar Pernos" */
+        .pernos-selector p {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        /* Ajuste específico para "Últimos Valores" */
+        .ultimos-valores h3 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+
+        /* Ajuste específico para los títulos de los pernos */
+        .gauge-item h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        /* Contenedor principal con padding y margen */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+
+        /* Ajuste del contraste para mejor legibilidad */
+        .valores-container span {
+            color: #333;
+            font-size: 14px;
+        }
+
+        .valores-container strong {
+            color: #11333F;
+            font-size: 16px;
+        }
+
         h1 { color: #333; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
@@ -13,18 +85,22 @@
         .filter-container { 
             margin-bottom: 20px;
             padding: 15px;
-            background-color: #f8f9fa;
+            background-color: white;
             border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .filter-container input { 
             margin-right: 10px; 
             padding: 5px; 
         }
         .chart-container {
-            width: 100%;
-            height: 500px;
+            background-color: white;
             margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
+            height: 500px;
         }
         .data-container {
             display: flex;
@@ -32,17 +108,20 @@
             gap: 20px;
         }
         #csv-table {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
             margin-top: 20px;
-            overflow-x: auto;
         }
         .button {
             padding: 8px 15px;
-            background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             margin-right: 10px;
+            font-size: 14px;
+            font-family: 'Konkretika Black WIP', Arial, sans-serif;
         }
         .button:hover {
             background-color: #45a049;
@@ -51,19 +130,20 @@
             display: none;
         }
         #toggleTableBtn {
-            background-color: #2196F3;
+            background-color: #EAE4D0;
+            color: #333;
         }
         #toggleTableBtn:hover {
-            background-color: #0b7dda;
+            background-color: #d9d1b8;
         }
         #realTimeBtn {
-            background-color: #ff9800;
+            background-color: #EC682B;
         }
         #realTimeBtn:hover {
-            background-color: #f57c00;
+            background-color: #d45c27;
         }
         #realTimeBtn.active {
-            background-color: #e65100;
+            background-color: #c04f1f;
         }
         .filter-container.disabled input,
         .filter-container.disabled button.filter-btn {
@@ -101,30 +181,13 @@
             border-radius: 4px;
         }
         #zonasBtn {
-            background-color: #607d8b;
+            background-color: #616160;
         }
         #zonasBtn:hover {
-            background-color: #455a64;
+            background-color: #4a4a49;
         }
         #zonasBtn.active {
             background-color: #37474f;
-        }
-        .zona-actions {
-            margin-top: 20px;
-            text-align: right;
-        }
-        
-        #aplicarZonasBtn {
-            background-color: #2196F3;
-            min-width: 120px;
-        }
-        
-        #aplicarZonasBtn:hover {
-            background-color: #1976D2;
-        }
-        
-        #aplicarZonasBtn.active {
-            background-color: #1565C0;
         }
         .pernos-selector {
             margin: 10px 0;
@@ -139,10 +202,10 @@
         }
         
         .checkbox-group {
+            margin: 10px 0;
             display: flex;
-            gap: 15px;
             flex-wrap: wrap;
-            align-items: center;
+            gap: 15px;
         }
         
         .checkbox-group label {
@@ -196,13 +259,11 @@
         }
         .zone-legend {
             position: absolute;
-            bottom: 50px;
-            left: 60px;
+            bottom: 20px;
+            left: 20px;
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
             padding: 10px;
-            font-size: 12px;
+            border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             z-index: 1000;
         }
@@ -255,11 +316,11 @@
         }
 
         .ultimos-valores {
-            background: white;
-            padding: 10px 20px;
-            margin: 10px 0;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
 
         .ultimos-valores h3 {
@@ -282,11 +343,10 @@
             font-size: 16px;
         }
         .gauge-container {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }   
 
         .gauge-grid {
@@ -318,163 +378,201 @@
             font-size: 16px;
             font-weight: bold;
         }
+
+        /* Ajustes para los inputs */
+        input[type="datetime-local"] {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        /* Estilo para el logo */
+        .logo-header {
+            height: 40px;
+            width: auto;
+        }
+
+        /* Asegurar que los botones de acción también tengan los nuevos colores */
+        .button.filter-btn {
+            background-color: #EC682B;
+        }
+
+        .button.logout {
+            background-color: #616160;
+        }
+
+        .button[style*="background-color: #2196F3"] {
+            background-color: #EAE4D0 !important;
+            color: #333;
+        }
+
+        /* Estilo para el botón de Aplicar Cambios */
+        .button.aplicar-cambios {
+            background-color: #EC682B;
+        }
+        .button.aplicar-cambios:hover {
+            background-color: #d45c27;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
 <body>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1>Forymec</h1>
-        <div>
-            {% if session['role'] == 'admin' %}
-                <button onclick="window.location.href='{{ url_for('dashboard') }}'" class="button" style="background-color: #2196F3;">
-                    Cambiar Raspberry
+    <div class="main-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <img src="{{ url_for('static', filename='logo_forymec.svg') }}" alt="Forymec" class="logo-header">
+            <div>
+                {% if session['role'] == 'admin' %}
+                    <button onclick="window.location.href='{{ url_for('dashboard') }}'" class="button" style="background-color: #EAE4D0; color: #333;">
+                        Cambiar Raspberry
+                    </button>
+                {% endif %}
+                <button onclick="window.location.href='{{ url_for('logout') }}'" class="button logout">
+                    Cerrar Sesión
                 </button>
-            {% endif %}
-            <button onclick="window.location.href='{{ url_for('logout') }}'" class="button" style="background-color: #f44336;">
-                Cerrar Sesión
-            </button>
-        </div>
-    </div>
-    <div class="filter-container">
-        <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
-        <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
-        
-        <div class="pernos-selector">
-            <p>Seleccionar Pernos:</p>
-            <div class="checkbox-group">
-                <label>
-                    <input type="checkbox" id="selectAll" checked onclick="toggleAllPernos()">
-                    Todos
-                </label>
-                <label>
-                    <input type="checkbox" class="perno-checkbox" data-perno="1" checked onclick="togglePerno(1)">
-                    Perno 1
-                </label>
-                <label>
-                    <input type="checkbox" class="perno-checkbox" data-perno="2" checked onclick="togglePerno(2)">
-                    Perno 2
-                </label>
-                <label>
-                    <input type="checkbox" class="perno-checkbox" data-perno="3" checked onclick="togglePerno(3)">
-                    Perno 3
-                </label>
-                <label>
-                    <input type="checkbox" class="perno-checkbox" data-perno="4" checked onclick="togglePerno(4)">
-                    Perno 4
-                </label>
-                <label>
-                    <input type="checkbox" class="perno-checkbox" data-perno="5" checked onclick="togglePerno(5)">
-                    Perno 5
-                </label>
             </div>
         </div>
-
-        <div id="filterControls">
-            <label>Desde: </label>
-            <input type="datetime-local" id="fecha_inicio">
-            <label>Hasta: </label>
-            <input type="datetime-local" id="fecha_fin">
-            <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
-            <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
-        </div>
-    </div>
-    
-    <div class="ultimos-valores">
-        <h3>Últimos Valores:</h3>
-        <div class="valores-container">
-            <span>Perno 1: <strong id="valor-perno1">--</strong></span>
-            <span>Perno 2: <strong id="valor-perno2">--</strong></span>
-            <span>Perno 3: <strong id="valor-perno3">--</strong></span>
-            <span>Perno 4: <strong id="valor-perno4">--</strong></span>
-            <span>Perno 5: <strong id="valor-perno5">--</strong></span>
-        </div>
-    </div>
-
-    <div class="gauge-container">
-        <div class="gauge-grid">
-            <div class="gauge-item">
-                <h3>Perno 1</h3>
-                <canvas id="gaugeCanvas1"></canvas>
-                <div class="gauge-label"><span id="gaugeValue1">0</span> KLBF</div>
-            </div>
-            <div class="gauge-item">
-                <h3>Perno 2</h3>
-                <canvas id="gaugeCanvas2"></canvas>
-                <div class="gauge-label"><span id="gaugeValue2">0</span> KLBF</div>
-            </div>
-            <div class="gauge-item">
-                <h3>Perno 3</h3>
-                <canvas id="gaugeCanvas3"></canvas>
-                <div class="gauge-label"><span id="gaugeValue3">0</span> KLBF</div>
-            </div>
-            <div class="gauge-item">
-                <h3>Perno 4</h3>
-                <canvas id="gaugeCanvas4"></canvas>
-                <div class="gauge-label"><span id="gaugeValue4">0</span> KLBF</div>
-            </div>
-            <div class="gauge-item">
-                <h3>Perno 5</h3>
-                <canvas id="gaugeCanvas5"></canvas>
-                <div class="gauge-label"><span id="gaugeValue5">0</span> KLBF</div>
-            </div>
-        </div>
-    </div>
-    
-    
-    <div id="zonasContainer" class="zonas-container hidden">
-        <h3>Configuración de Zonas</h3>
-        <div class="zona-config">
-            <div class="zona-group">
-                <label>Zona de Trabajo Normal:</label>
-                <input type="number" id="zonaTrabajoMin" value="115" step="1"> -
-                <input type="number" id="zonaTrabajoMax" value="175" step="1">
-            </div>
-            <div class="zona-group">
-                <label>Zona de Observación:</label>
-                <input type="number" id="zonaObservacionMin" value="90" step="1"> -
-                <input type="number" id="zonaObservacionMax" value="115" step="1">
-            </div>
-            <div class="zona-group">
-                <label>Zona Crítica:</label>
-                0 - <input type="number" id="zonaCriticaMax" value="90" step="1">
-            </div>
-            <div class="zona-group">
-                <label>Opacidad de zonas:</label>
-                <input type="range" id="zonasOpacidad" min="0" max="100" value="20" 
-                       oninput="updateZonasOpacidad(this.value)">
-                <span id="opacidadValue">20%</span>
-            </div>
-        </div>
-        <button class="button" onclick="updateZonas()">Aplicar Cambios</button>
-    </div>
-    
-    <div class="data-container">
-        <div class="chart-container">
-            <canvas id="myChart"></canvas>
-            <div class="zone-legend">
-                <div class="legend-header">
-                    <span>Zonas de Operación</span>
-                    <button class="legend-toggle" onclick="toggleLegend()">−</button>
+        <div class="filter-container">
+            <button class="button" id="realTimeBtn" onclick="toggleRealTime()">Iniciar Tiempo Real</button>
+            <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
+            
+            <div class="pernos-selector">
+                <p>Seleccionar Pernos:</p>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="selectAll" checked onclick="toggleAllPernos()">
+                        Todos
+                    </label>
+                    <label>
+                        <input type="checkbox" class="perno-checkbox" data-perno="1" checked onclick="togglePerno(1)">
+                        Perno 1
+                    </label>
+                    <label>
+                        <input type="checkbox" class="perno-checkbox" data-perno="2" checked onclick="togglePerno(2)">
+                        Perno 2
+                    </label>
+                    <label>
+                        <input type="checkbox" class="perno-checkbox" data-perno="3" checked onclick="togglePerno(3)">
+                        Perno 3
+                    </label>
+                    <label>
+                        <input type="checkbox" class="perno-checkbox" data-perno="4" checked onclick="togglePerno(4)">
+                        Perno 4
+                    </label>
+                    <label>
+                        <input type="checkbox" class="perno-checkbox" data-perno="5" checked onclick="togglePerno(5)">
+                        Perno 5
+                    </label>
                 </div>
-                <div id="legend-content">
-                    <div class="legend-item">
-                        <div class="color-box normal"></div>
-                        <span>Zona de Trabajo Normal (115-175)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="color-box observacion"></div>
-                        <span>Zona de Observación (90-115)</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="color-box critica"></div>
-                        <span>Zona Crítica (0-90)</span>
-                    </div>
+            </div>
+
+            <div id="filterControls">
+                <label>Desde: </label>
+                <input type="datetime-local" id="fecha_inicio">
+                <label>Hasta: </label>
+                <input type="datetime-local" id="fecha_fin">
+                <button class="button filter-btn" onclick="fetchData()">Filtrar</button>
+                <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
+            </div>
+        </div>
+        
+        <div class="ultimos-valores">
+            <h3>Últimos Valores:</h3>
+            <div class="valores-container">
+                <span>Perno 1: <strong id="valor-perno1">--</strong></span>
+                <span>Perno 2: <strong id="valor-perno2">--</strong></span>
+                <span>Perno 3: <strong id="valor-perno3">--</strong></span>
+                <span>Perno 4: <strong id="valor-perno4">--</strong></span>
+                <span>Perno 5: <strong id="valor-perno5">--</strong></span>
+            </div>
+        </div>
+
+        <div class="gauge-container">
+            <div class="gauge-grid">
+                <div class="gauge-item">
+                    <h3>Perno 1</h3>
+                    <canvas id="gaugeCanvas1"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue1">0</span> KLBF</div>
+                </div>
+                <div class="gauge-item">
+                    <h3>Perno 2</h3>
+                    <canvas id="gaugeCanvas2"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue2">0</span> KLBF</div>
+                </div>
+                <div class="gauge-item">
+                    <h3>Perno 3</h3>
+                    <canvas id="gaugeCanvas3"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue3">0</span> KLBF</div>
+                </div>
+                <div class="gauge-item">
+                    <h3>Perno 4</h3>
+                    <canvas id="gaugeCanvas4"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue4">0</span> KLBF</div>
+                </div>
+                <div class="gauge-item">
+                    <h3>Perno 5</h3>
+                    <canvas id="gaugeCanvas5"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue5">0</span> KLBF</div>
                 </div>
             </div>
         </div>
         
-        <div id="csv-table" class="hidden"></div>
+        
+        <div id="zonasContainer" class="zonas-container hidden">
+            <h3>Configuración de Zonas</h3>
+            <div class="zona-config">
+                <div class="zona-group">
+                    <label>Zona de Trabajo Normal:</label>
+                    <input type="number" id="zonaTrabajoMin" value="115" step="1"> -
+                    <input type="number" id="zonaTrabajoMax" value="175" step="1">
+                </div>
+                <div class="zona-group">
+                    <label>Zona de Observación:</label>
+                    <input type="number" id="zonaObservacionMin" value="90" step="1"> -
+                    <input type="number" id="zonaObservacionMax" value="115" step="1">
+                </div>
+                <div class="zona-group">
+                    <label>Zona Crítica:</label>
+                    0 - <input type="number" id="zonaCriticaMax" value="90" step="1">
+                </div>
+                <div class="zona-group">
+                    <label>Opacidad de zonas:</label>
+                    <input type="range" id="zonasOpacidad" min="0" max="100" value="20" 
+                           oninput="updateZonasOpacidad(this.value)">
+                    <span id="opacidadValue">20%</span>
+                </div>
+            </div>
+            <button class="button aplicar-cambios" onclick="updateZonas()">Aplicar Cambios</button>
+        </div>
+        
+        <div class="data-container">
+            <div class="chart-container">
+                <canvas id="myChart" style="width: 100%; height: 100%;"></canvas>
+                <div class="zone-legend">
+                    <div class="legend-header">
+                        <span>Zonas de Operación</span>
+                        <button class="legend-toggle" onclick="toggleLegend()">−</button>
+                    </div>
+                    <div id="legend-content">
+                        <div class="legend-item">
+                            <div class="color-box normal"></div>
+                            <span>Zona de Trabajo Normal (115-175)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box observacion"></div>
+                            <span>Zona de Observación (90-115)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box critica"></div>
+                            <span>Zona Crítica (0-90)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="csv-table" class="hidden"></div>
+        </div>
     </div>
 
     <script>
@@ -758,7 +856,7 @@
             document.querySelector('.legend-item:nth-child(3) span').textContent = 
                 `Zona Crítica (0-${zonasConfig.critica.max})`;
 
-            // Actualizar las anotaciones del gráfico
+            // Actualizar el gráfico si existe
             if (chart) {
                 const opacity = currentOpacity / 100;
                 const annotations = chart.options.plugins.annotation.annotations;
@@ -772,7 +870,7 @@
                 annotations.zonaCritica.yMin = 0;
                 annotations.zonaCritica.yMax = zonasConfig.critica.max;
 
-                chart.update('none');
+                chart.update();
             }
         }
 
@@ -933,76 +1031,22 @@
                 chart.destroy();
             }
 
-            // Configurar escala Y
-            const yAxisConfig = {
-                title: {
-                    display: true,
-                    text: 'Tensión (KLBF)'
-                },
-                min: 0,
-                max: 200,
-                ticks: {
-                    callback: function(value) {
-                        return Math.floor(value * 100) / 100;
-                    }
+            const datasets = [];
+            for (let i = 1; i <= 5; i++) {
+                const pernoKey = `perno_${i}`;
+                if (datos[pernoKey]) {
+                    datasets.push({
+                        label: `Perno ${i}`,
+                        data: datos[pernoKey],
+                        borderColor: getPernoColor(i),
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        hidden: !selectedPernos.has(i)
+                    });
                 }
-            };
-
-            const datasets = [
-                {
-                    label: 'Dato 1',
-                    data: datos.perno_1,
-                    borderColor: 'rgba(0, 255, 255, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(1)
-                },
-                {
-                    label: 'Dato 2',
-                    data: datos.perno_2,
-                    borderColor: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(2)
-                },
-                {
-                    label: 'Dato 3',
-                    data: datos.perno_3,
-                    borderColor: 'rgba(255, 206, 86, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(3)
-                },
-                {
-                    label: 'Dato 4',
-                    data: datos.perno_4,
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(4)
-                },
-                {
-                    label: 'Dato 5',
-                    data: datos.perno_5,
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(5)
-                }
-            ];
-
-            // Actualizar los últimos valores
-            updateUltimosValores(datos);
+            }
 
             chart = new Chart(ctx, {
                 type: 'line',
@@ -1017,7 +1061,6 @@
                         duration: 0
                     },
                     plugins: {
-                        legend: { display: false },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
@@ -1042,7 +1085,7 @@
                                     type: 'box',
                                     xScaleID: 'x',
                                     yScaleID: 'y',
-                                    yMin: zonasConfig.critica.min,
+                                    yMin: 0,
                                     yMax: zonasConfig.critica.max,
                                     backgroundColor: `rgba(255, 0, 0, ${opacity})`,
                                     borderColor: 'transparent'
@@ -1060,10 +1103,29 @@
                                 maxTicksLimit: 10
                             }
                         },
-                        y: yAxisConfig
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tensión (KLBF)'
+                            },
+                            min: 0,
+                            max: 200
+                        }
                     }
                 }
             });
+        }
+
+        // Función auxiliar para obtener colores de los pernos
+        function getPernoColor(index) {
+            const colors = [
+                'rgba(0, 255, 255, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(54, 162, 235, 1)',
+                'rgba(153, 102, 255, 1)'
+            ];
+            return colors[index - 1];
         }
 
         function updateTableRealTime() {
@@ -1199,9 +1261,13 @@
 
         // Inicializar los velocímetros al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar velocímetros
             for (let i = 0; i < 5; i++) {
                 drawGauge(ctxs[i], gaugeCanvases[i], 0);
             }
+            
+            // Cargar datos iniciales
+            fetchData();
         });
 
     </script>

@@ -11,9 +11,10 @@
             box-sizing: border-box;
         }
 
+        /* 🔹 Fondo actualizado al color principal */
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #11333F; /* Fondo principal */
             height: 100vh;
             display: flex;
             align-items: center;
@@ -27,24 +28,30 @@
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 400px;
+            text-align: center;
         }
 
-        h1 {
-            color: #333;
+        .logo-container {
             text-align: center;
-            margin-bottom: 1.5rem;
-            font-size: 1.8rem;
+            margin-bottom: 2rem; /* Aumentado el margen inferior */
+        }
+
+        .logo {
+            width: 300px; /* Aumentado el tamaño del logo */
+            height: auto;
+            margin-bottom: 1rem;
         }
 
         .form-group {
             margin-bottom: 1.5rem;
             position: relative;
+            text-align: left;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #666;
+            color: #616160; /* Color de las etiquetas */
             font-size: 0.9rem;
         }
 
@@ -55,28 +62,32 @@
             border-radius: 5px;
             font-size: 1rem;
             transition: border-color 0.3s ease;
+            background-color: white; /* Aseguramos fondo blanco */
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #4CAF50;
-            box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+            border-color: #EC682B; /* Resaltar el input con color naranja */
+            box-shadow: 0 0 5px rgba(236, 104, 43, 0.5);
         }
 
+        /* 🔹 Botón de Ingreso actualizado */
         .submit-btn {
             width: 100%;
             padding: 1rem;
-            background-color: #4CAF50;
+            background-color: #EC682B; /* Color naranja como en la imagen */
             color: white;
             border: none;
             border-radius: 5px;
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-top: 1rem; /* Añadido margen superior */
         }
 
         .submit-btn:hover {
-            background-color: #45a049;
+            background-color: #d45c27; /* Color más oscuro al pasar el cursor */
+            transform: scale(1.05); /* Efecto ligero de zoom */
         }
 
         .error-message {
@@ -117,15 +128,19 @@
                 padding: 1.5rem;
             }
 
-            h1 {
-                font-size: 1.5rem;
+            .logo {
+                width: 180px; /* Ajustado para móviles */
             }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <h1>Iniciar Sesión</h1>
+        <!-- Reemplazamos el h1 por solo el logo -->
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo_forymec.svg') }}" alt="Forymec" class="logo">
+        </div>
+
         <form method="POST" action="{{ url_for('login') }}">
             <div class="form-group">
                 <label for="username">Usuario</label>

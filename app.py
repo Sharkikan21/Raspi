@@ -8,6 +8,7 @@ from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'  # Mejor si viene de variables de entorno
+app.static_folder = 'static'
 
 # Configuración del caché
 cache = Cache(app, config={
