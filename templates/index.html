@@ -624,18 +624,18 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 
-                // Limpiar intervalo existente si hay uno
                 if (realTimeInterval) {
                     clearInterval(realTimeInterval);
                 }
                 
-                // Obtener datos iniciales y comenzar el monitoreo
+                // Iniciar con los últimos 50 datos
                 fetch('/data?format=json&limit=50')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
                             createChart(data.fechas, data);
+                            updateUltimosValores(data);
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
                     })
@@ -665,7 +665,7 @@
         function fetchRealTimeData() {
             if (!isRealTime) return;
             
-            let url = '/data?format=json';
+            let url = '/data?format=json&limit=1'; // Solicitar solo el último dato
             if (lastTimestamp) {
                 url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
             }
@@ -678,40 +678,50 @@
                         
                         // Actualizar datos del gráfico
                         if (chart) {
-                            // Actualizar las etiquetas (fechas)
-                            let labels = [...chart.data.labels];
-                            labels = labels.concat(data.fechas);
+                            // Mantener solo los últimos MAX_POINTS datos
+                            let labels = [...chart.data.labels, ...data.fechas];
                             if (labels.length > MAX_POINTS) {
                                 labels = labels.slice(-MAX_POINTS);
                             }
                             chart.data.labels = labels;
 
-                            // Actualizar los datos de cada perno
+                            // Actualizar cada dataset
                             chart.data.datasets.forEach((dataset, index) => {
                                 const pernoNum = index + 1;
-                                const pernoKey = `perno_${pernoNum}`;
+                                const pernoKey = `perno_${i}`;
                                 
-                                if (data[pernoKey]) {
+                                if (data[pernoKey] && data[pernoKey].length > 0) {
                                     let newData = [...dataset.data];
-                                    newData = newData.concat(data[pernoKey]);
-                                    if (newData.length > MAX_POINTS) {
-                                        newData = newData.slice(-MAX_POINTS);
-                                    }
-                                    dataset.data = newData;
+                                    const nuevoValor = data[pernoKey][data[pernoKey].length - 1];
                                     
-                                    // Asegurar que el dataset esté visible si está seleccionado
+                                    // Solo agregar el valor si es válido
+                                    if (nuevoValor !== null && !isNaN(nuevoValor)) {
+                                        newData.push(nuevoValor);
+                                        if (newData.length > MAX_POINTS) {
+                                            newData = newData.slice(-MAX_POINTS);
+                                        }
+                                        dataset.data = newData;
+                                    }
+                                    
                                     dataset.hidden = !selectedPernos.has(pernoNum);
                                 }
                             });
 
-                            chart.update();
-                        } else {
-                            // Si no existe el gráfico, crearlo
-                            createChart(data.fechas, data);
+                            chart.update('none'); // Usar 'none' para una actualización más suave
                         }
                         
                         // Actualizar últimos valores y velocímetros
-                        updateUltimosValores(data);
+                        const valores = {};
+                        for (let i = 1; i <= 5; i++) {
+                            const pernoKey = `perno_${i}`;
+                            if (data[pernoKey] && data[pernoKey].length > 0) {
+                                const valor = data[pernoKey][data[pernoKey].length - 1];
+                                if (valor !== null && !isNaN(valor)) {
+                                    valores[pernoKey] = [valor];
+                                }
+                            }
+                        }
+                        updateUltimosValores(valores);
                         
                         // Actualizar la tabla si está visible
                         if (tableVisible) {
@@ -726,18 +736,24 @@
         }
 
         function updateUltimosValores(datos) {
-            // Asegurarnos de que estamos usando el último valor del array para cada perno
             for (let i = 1; i <= 5; i++) {
                 const pernoKey = `perno_${i}`;
                 const valores = datos[pernoKey];
-                const valor = valores && valores.length > 0 ? 
-                    valores[valores.length - 1] : null;
+                let valor = null;
+                
+                if (valores && valores.length > 0) {
+                    valor = valores[valores.length - 1];
+                    // Validar que el valor sea un número válido y no negativo
+                    if (valor === null || isNaN(valor) || valor < 0) {
+                        valor = null;
+                    }
+                }
                 
                 const valorElement = document.getElementById(`valor-perno${i}`);
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
                 valorElement.textContent = valorFormateado;
 
-                // Actualizar el velocímetro con el mismo valor
+                // Solo actualizar el velocímetro si tenemos un valor válido
                 if (valor !== null) {
                     drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
                     document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
@@ -1208,6 +1224,11 @@
         }
 
         function drawGauge(ctx, canvas, value) {
+            // Asegurarse de que el valor no sea negativo o NaN
+            if (value === null || isNaN(value) || value < 0) {
+                value = 0;
+            }
+            
             const centerX = canvas.width / 2;
             const centerY = canvas.height;
             const radius = 84;
