@@ -710,15 +710,23 @@
         }
 
         function updateUltimosValores(datos) {
+            // Asegurarnos de que estamos usando el último valor del array para cada perno
             for (let i = 1; i <= 5; i++) {
                 const pernoKey = `perno_${i}`;
-                const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
-                    datos[pernoKey][datos[pernoKey].length - 1] : null;
+                const valores = datos[pernoKey];
+                const valor = valores && valores.length > 0 ? 
+                    valores[valores.length - 1] : null;
                 
-                document.getElementById(`valor-perno${i}`).textContent = 
-                    valor !== null ? valor.toFixed(2) : '--';
+                const valorElement = document.getElementById(`valor-perno${i}`);
+                const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
+                valorElement.textContent = valorFormateado;
+
+                // Actualizar el velocímetro con el mismo valor
+                if (valor !== null) {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                }
             }
-            updateGauges(datos);
         }
 
         function updateTable() {
@@ -1142,18 +1150,26 @@
                         const existingTable = tableDiv.querySelector('table');
                         
                         if (existingTable && newTable) {
-                            // Mantener las primeras 10 filas
-                            const rows = Array.from(newTable.querySelectorAll('tr'));
-                            const headerRow = rows[0];
-                            const dataRows = rows.slice(1, 11); // Tomar solo las primeras 10 filas de datos
+                            // Obtener la primera fila de datos (después del encabezado)
+                            const firstDataRow = newTable.querySelector('tr:nth-child(2)');
+                            if (firstDataRow) {
+                                // Obtener los valores de los pernos de la primera fila
+                                const cells = firstDataRow.querySelectorAll('td');
+                                const valores = {};
+                                
+                                // Los valores de los pernos están en las columnas 2-6 (índices 1-5)
+                                for (let i = 1; i <= 5; i++) {
+                                    const valor = parseFloat(cells[i].textContent);
+                                    valores[`perno_${i}`] = [valor];
+                                }
+                                
+                                // Actualizar los velocímetros y valores con los datos más recientes
+                                updateUltimosValores(valores);
+                            }
                             
-                            const newTableHtml = document.createElement('table');
-                            newTableHtml.className = existingTable.className;
-                            newTableHtml.appendChild(headerRow.cloneNode(true));
-                            dataRows.forEach(row => newTableHtml.appendChild(row.cloneNode(true)));
-                            
+                            // Actualizar la tabla
                             tableDiv.innerHTML = '';
-                            tableDiv.appendChild(newTableHtml);
+                            tableDiv.appendChild(newTable);
                         } else {
                             tableDiv.innerHTML = html;
                         }
