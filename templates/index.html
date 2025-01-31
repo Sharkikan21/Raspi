@@ -624,24 +624,20 @@
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
                 
+                // Limpiar intervalo existente si hay uno
                 if (realTimeInterval) {
                     clearInterval(realTimeInterval);
                 }
                 
-                // Iniciar con los últimos 50 datos
+                // Obtener el último dato y comenzar desde allí
                 fetch('/data?format=json&limit=50')
                     .then(response => response.json())
                     .then(data => {
                         if (data.fechas && data.fechas.length > 0) {
                             lastTimestamp = data.fechas[data.fechas.length - 1];
                             createChart(data.fechas, data);
-                            updateUltimosValores(data);
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        stopRealTime();
                     });
             } else {
                 stopRealTime();
@@ -665,7 +661,7 @@
         function fetchRealTimeData() {
             if (!isRealTime) return;
             
-            let url = '/data?format=json&limit=1'; // Solicitar solo el último dato
+            let url = '/data?format=json';
             if (lastTimestamp) {
                 url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
             }
@@ -678,55 +674,33 @@
                         
                         // Actualizar datos del gráfico
                         if (chart) {
-                            // Mantener solo los últimos MAX_POINTS datos
-                            let labels = [...chart.data.labels, ...data.fechas];
-                            if (labels.length > MAX_POINTS) {
-                                labels = labels.slice(-MAX_POINTS);
+                            const maxPoints = 50;
+                            let labels = [...chart.data.labels];
+                            labels = labels.concat(data.fechas);
+                            if (labels.length > maxPoints) {
+                                labels = labels.slice(-maxPoints);
                             }
                             chart.data.labels = labels;
 
-                            // Actualizar cada dataset
                             chart.data.datasets.forEach((dataset, index) => {
                                 const pernoNum = index + 1;
-                                const pernoKey = `perno_${i}`;
-                                
-                                if (data[pernoKey] && data[pernoKey].length > 0) {
+                                const pernoKey = `perno_${pernoNum}`;
+                                if (selectedPernos.has(pernoNum) && data[pernoKey]) {
                                     let newData = [...dataset.data];
-                                    const nuevoValor = data[pernoKey][data[pernoKey].length - 1];
-                                    
-                                    // Solo agregar el valor si es válido
-                                    if (nuevoValor !== null && !isNaN(nuevoValor)) {
-                                        newData.push(nuevoValor);
-                                        if (newData.length > MAX_POINTS) {
-                                            newData = newData.slice(-MAX_POINTS);
-                                        }
-                                        dataset.data = newData;
+                                    newData = newData.concat(data[pernoKey]);
+                                    if (newData.length > maxPoints) {
+                                        newData = newData.slice(-maxPoints);
                                     }
-                                    
-                                    dataset.hidden = !selectedPernos.has(pernoNum);
+                                    dataset.data = newData;
+                                    dataset.hidden = false;
                                 }
                             });
-
-                            chart.update('none'); // Usar 'none' para una actualización más suave
+                            chart.update('none');
                         }
                         
-                        // Actualizar últimos valores y velocímetros
-                        const valores = {};
-                        for (let i = 1; i <= 5; i++) {
-                            const pernoKey = `perno_${i}`;
-                            if (data[pernoKey] && data[pernoKey].length > 0) {
-                                const valor = data[pernoKey][data[pernoKey].length - 1];
-                                if (valor !== null && !isNaN(valor)) {
-                                    valores[pernoKey] = [valor];
-                                }
-                            }
-                        }
-                        updateUltimosValores(valores);
-                        
-                        // Actualizar la tabla si está visible
-                        if (tableVisible) {
-                            updateTableRealTime();
-                        }
+                        // Actualizar últimos valores y tabla
+                        updateUltimosValores(data);
+                        updateTableRealTime();
                     }
                 })
                 .catch(error => {
@@ -738,27 +712,13 @@
         function updateUltimosValores(datos) {
             for (let i = 1; i <= 5; i++) {
                 const pernoKey = `perno_${i}`;
-                const valores = datos[pernoKey];
-                let valor = null;
+                const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
+                    datos[pernoKey][datos[pernoKey].length - 1] : null;
                 
-                if (valores && valores.length > 0) {
-                    valor = valores[valores.length - 1];
-                    // Validar que el valor sea un número válido y no negativo
-                    if (valor === null || isNaN(valor) || valor < 0) {
-                        valor = null;
-                    }
-                }
-                
-                const valorElement = document.getElementById(`valor-perno${i}`);
-                const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
-                valorElement.textContent = valorFormateado;
-
-                // Solo actualizar el velocímetro si tenemos un valor válido
-                if (valor !== null) {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
-                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                }
+                document.getElementById(`valor-perno${i}`).textContent = 
+                    valor !== null ? valor.toFixed(2) : '--';
             }
+            updateGauges(datos);
         }
 
         function updateTable() {
@@ -1182,26 +1142,18 @@
                         const existingTable = tableDiv.querySelector('table');
                         
                         if (existingTable && newTable) {
-                            // Obtener la primera fila de datos (después del encabezado)
-                            const firstDataRow = newTable.querySelector('tr:nth-child(2)');
-                            if (firstDataRow) {
-                                // Obtener los valores de los pernos de la primera fila
-                                const cells = firstDataRow.querySelectorAll('td');
-                                const valores = {};
-                                
-                                // Los valores de los pernos están en las columnas 2-6 (índices 1-5)
-                                for (let i = 1; i <= 5; i++) {
-                                    const valor = parseFloat(cells[i].textContent);
-                                    valores[`perno_${i}`] = [valor];
-                                }
-                                
-                                // Actualizar los velocímetros y valores con los datos más recientes
-                                updateUltimosValores(valores);
-                            }
+                            // Mantener las primeras 10 filas
+                            const rows = Array.from(newTable.querySelectorAll('tr'));
+                            const headerRow = rows[0];
+                            const dataRows = rows.slice(1, 11); // Tomar solo las primeras 10 filas de datos
                             
-                            // Actualizar la tabla
+                            const newTableHtml = document.createElement('table');
+                            newTableHtml.className = existingTable.className;
+                            newTableHtml.appendChild(headerRow.cloneNode(true));
+                            dataRows.forEach(row => newTableHtml.appendChild(row.cloneNode(true)));
+                            
                             tableDiv.innerHTML = '';
-                            tableDiv.appendChild(newTable);
+                            tableDiv.appendChild(newTableHtml);
                         } else {
                             tableDiv.innerHTML = html;
                         }
@@ -1224,11 +1176,6 @@
         }
 
         function drawGauge(ctx, canvas, value) {
-            // Asegurarse de que el valor no sea negativo o NaN
-            if (value === null || isNaN(value) || value < 0) {
-                value = 0;
-            }
-            
             const centerX = canvas.width / 2;
             const centerY = canvas.height;
             const radius = 84;
