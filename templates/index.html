@@ -731,15 +731,6 @@
             }
         }
 
-        function updateTable() {
-            fetch('/data')
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('csv-table').innerHTML = html;
-                })
-                .catch(error => console.error('Error updating table:', error));
-        }
-
         function toggleTable() {
             const tableDiv = document.getElementById('csv-table');
             const btn = document.getElementById('toggleTableBtn');
@@ -747,8 +738,8 @@
             
             if (tableVisible) {
                 btn.textContent = 'Ocultar Tabla';
-                // Cargar los últimos 10 datos al mostrar la tabla
-                fetch('/data?limit=10')
+                // Cargar todos los datos sin límite
+                fetch('/data')
                     .then(response => response.text())
                     .then(html => {
                         tableDiv.innerHTML = html;
@@ -1130,19 +1121,19 @@
         // Función auxiliar para obtener colores de los pernos
         function getPernoColor(index) {
             const colors = [
-                'rgba(0, 255, 255, 1)',
-                'rgba(255, 99, 132, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(153, 102, 255, 1)'
+                'rgba(200, 0, 0, 1)',        // Rojo intenso para Perno 1
+                'rgba(140, 30, 45, 1)',      // Rosa extremadamente oscuro
+                'rgba(150, 110, 15, 1)',     // Amarillo extremadamente oscuro
+                'rgba(15, 60, 140, 1)',      // Azul extremadamente oscuro
+                'rgba(70, 35, 140, 1)'       // Morado extremadamente oscuro
             ];
             return colors[index - 1];
         }
 
         function updateTableRealTime() {
-            if (!tableVisible) return Promise.resolve(null);
+            if (!tableVisible) return;
 
-            return fetch('/data?limit=10')
+            fetch('/data')  // Quitamos el parámetro limit=10
                 .then(response => response.text())
                 .then(html => {
                     const tableDiv = document.getElementById('csv-table');
@@ -1153,9 +1144,10 @@
                         const existingTable = tableDiv.querySelector('table');
                         
                         if (existingTable && newTable) {
+                            // Ya no limitamos las filas a 10
                             const rows = Array.from(newTable.querySelectorAll('tr'));
                             const headerRow = rows[0];
-                            const dataRows = rows.slice(1, 11);
+                            const dataRows = rows.slice(1); // Tomamos todas las filas de datos
                             
                             const newTableHtml = document.createElement('table');
                             newTableHtml.className = existingTable.className;
@@ -1164,25 +1156,12 @@
                             
                             tableDiv.innerHTML = '';
                             tableDiv.appendChild(newTableHtml);
-
-                            // Retornar los datos de la segunda fila
-                            if (dataRows.length > 0) {
-                                const cells = dataRows[0].querySelectorAll('td');
-                                const tableData = {};
-                                for (let i = 1; i <= 5; i++) {
-                                    const valor = cells[i] ? cells[i].textContent : 'None';
-                                    tableData[`perno_${i}`] = valor === 'None' ? null : parseFloat(valor);
-                                }
-                                return tableData;
-                            }
+                        } else {
+                            tableDiv.innerHTML = html;
                         }
                     }
-                    return null;
                 })
-                .catch(error => {
-                    console.error('Error updating table:', error);
-                    return null;
-                });
+                .catch(error => console.error('Error updating table:', error));
         }
 
         function updateDisplays(tableData) {
