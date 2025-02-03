@@ -421,7 +421,7 @@
 <body>
     <div class="main-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <img src="{{ url_for('static', filename='logo_forymec.svg') }}" alt="Forymec" class="logo-header">
+            <img src="{{ url_for('static', filename='forymec_png_Mesa_de_trabajo_1.png') }}" alt="Forymec" class="logo-header">
             <div>
                 {% if session['role'] == 'admin' %}
                     <button onclick="window.location.href='{{ url_for('dashboard') }}'" class="button" style="background-color: #EAE4D0; color: #333;">
@@ -629,19 +629,70 @@
                     clearInterval(realTimeInterval);
                 }
                 
-                // Obtener el último dato y comenzar desde allí
-                fetch('/data?format=json&limit=50')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.fechas && data.fechas.length > 0) {
-                            lastTimestamp = data.fechas[data.fechas.length - 1];
-                            createChart(data.fechas, data);
-                            realTimeInterval = setInterval(fetchRealTimeData, 5000);
-                        }
-                    });
+                // Iniciar un nuevo gráfico vacío
+                createEmptyChart();
+                
+                // Obtener el primer dato inmediatamente
+                fetchRealTimeData();
+                
+                // Iniciar el intervalo para los siguientes datos
+                realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                
             } else {
                 stopRealTime();
             }
+        }
+
+        function fetchRealTimeData() {
+            if (!isRealTime) return;
+            
+            let url = '/data?format=json';
+            if (lastTimestamp) {
+                url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
+            } else {
+                url += '&limit=1';
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas && data.fechas.length > 0) {
+                        lastTimestamp = data.fechas[data.fechas.length - 1];
+                        
+                        // Actualizar datos del gráfico
+                        if (chart) {
+                            chart.data.labels = chart.data.labels.concat(data.fechas);
+
+                            chart.data.datasets.forEach((dataset, index) => {
+                                const pernoNum = index + 1;
+                                const pernoKey = `perno_${pernoNum}`;
+                                if (data[pernoKey]) {
+                                    dataset.data = dataset.data.concat(data[pernoKey]);
+                                    dataset.hidden = !selectedPernos.has(pernoNum);
+                                }
+                            });
+                            
+                            chart.update('none');
+                        }
+                        
+                        // Si la tabla está visible, actualizar todo basado en los datos de la tabla
+                        if (tableVisible) {
+                            updateTableRealTime()
+                                .then(tableData => {
+                                    if (tableData) {
+                                        updateDisplays(tableData);
+                                    }
+                                });
+                        } else {
+                            // Si la tabla no está visible, actualizar con los últimos datos recibidos
+                            updateDisplaysWithLatestData(data);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    stopRealTime();
+                });
         }
 
         function stopRealTime() {
@@ -658,67 +709,26 @@
             lastTimestamp = null;
         }
 
-        function fetchRealTimeData() {
-            if (!isRealTime) return;
-            
-            let url = '/data?format=json';
-            if (lastTimestamp) {
-                url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
-            }
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.fechas && data.fechas.length > 0) {
-                        lastTimestamp = data.fechas[data.fechas.length - 1];
-                        
-                        // Actualizar datos del gráfico
-                        if (chart) {
-                            const maxPoints = 50;
-                            let labels = [...chart.data.labels];
-                            labels = labels.concat(data.fechas);
-                            if (labels.length > maxPoints) {
-                                labels = labels.slice(-maxPoints);
-                            }
-                            chart.data.labels = labels;
-
-                            chart.data.datasets.forEach((dataset, index) => {
-                                const pernoNum = index + 1;
-                                const pernoKey = `perno_${pernoNum}`;
-                                if (selectedPernos.has(pernoNum) && data[pernoKey]) {
-                                    let newData = [...dataset.data];
-                                    newData = newData.concat(data[pernoKey]);
-                                    if (newData.length > maxPoints) {
-                                        newData = newData.slice(-maxPoints);
-                                    }
-                                    dataset.data = newData;
-                                    dataset.hidden = false;
-                                }
-                            });
-                            chart.update('none');
-                        }
-                        
-                        // Actualizar últimos valores y tabla
-                        updateUltimosValores(data);
-                        updateTableRealTime();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    stopRealTime();
-                });
-        }
-
         function updateUltimosValores(datos) {
             for (let i = 1; i <= 5; i++) {
                 const pernoKey = `perno_${i}`;
                 const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
                     datos[pernoKey][datos[pernoKey].length - 1] : null;
                 
-                document.getElementById(`valor-perno${i}`).textContent = 
-                    valor !== null ? valor.toFixed(2) : '--';
+                // Actualizar el texto del último valor
+                const valorElement = document.getElementById(`valor-perno${i}`);
+                const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
+                valorElement.textContent = valorFormateado;
+                
+                // Actualizar el velocímetro con el mismo valor
+                if (valor !== null) {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                } else {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                }
             }
-            updateGauges(datos);
         }
 
         function updateTable() {
@@ -1100,7 +1110,8 @@
                                 text: 'Fecha y Hora'
                             },
                             ticks: {
-                                maxTicksLimit: 10
+                                maxTicksLimit: 10,
+                                autoSkip: true
                             }
                         },
                         y: {
@@ -1129,9 +1140,9 @@
         }
 
         function updateTableRealTime() {
-            if (!tableVisible) return;
+            if (!tableVisible) return Promise.resolve(null);
 
-            fetch('/data?limit=10')
+            return fetch('/data?limit=10')
                 .then(response => response.text())
                 .then(html => {
                     const tableDiv = document.getElementById('csv-table');
@@ -1142,10 +1153,9 @@
                         const existingTable = tableDiv.querySelector('table');
                         
                         if (existingTable && newTable) {
-                            // Mantener las primeras 10 filas
                             const rows = Array.from(newTable.querySelectorAll('tr'));
                             const headerRow = rows[0];
-                            const dataRows = rows.slice(1, 11); // Tomar solo las primeras 10 filas de datos
+                            const dataRows = rows.slice(1, 11);
                             
                             const newTableHtml = document.createElement('table');
                             newTableHtml.className = existingTable.className;
@@ -1154,12 +1164,68 @@
                             
                             tableDiv.innerHTML = '';
                             tableDiv.appendChild(newTableHtml);
-                        } else {
-                            tableDiv.innerHTML = html;
+
+                            // Retornar los datos de la segunda fila
+                            if (dataRows.length > 0) {
+                                const cells = dataRows[0].querySelectorAll('td');
+                                const tableData = {};
+                                for (let i = 1; i <= 5; i++) {
+                                    const valor = cells[i] ? cells[i].textContent : 'None';
+                                    tableData[`perno_${i}`] = valor === 'None' ? null : parseFloat(valor);
+                                }
+                                return tableData;
+                            }
                         }
                     }
+                    return null;
                 })
-                .catch(error => console.error('Error updating table:', error));
+                .catch(error => {
+                    console.error('Error updating table:', error);
+                    return null;
+                });
+        }
+
+        function updateDisplays(tableData) {
+            // Actualizar velocímetros y últimos valores con los datos de la tabla
+            for (let i = 1; i <= 5; i++) {
+                const valor = tableData[`perno_${i}`];
+                const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
+                
+                // Actualizar último valor
+                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
+                
+                // Actualizar velocímetro
+                if (valor !== null) {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                } else {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                }
+            }
+        }
+
+        function updateDisplaysWithLatestData(data) {
+            // Actualizar velocímetros y últimos valores con los datos más recientes
+            for (let i = 1; i <= 5; i++) {
+                const pernoKey = `perno_${i}`;
+                const valor = data[pernoKey] && data[pernoKey].length > 0 ? 
+                    data[pernoKey][data[pernoKey].length - 1] : null;
+                
+                const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
+                
+                // Actualizar último valor
+                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
+                
+                // Actualizar velocímetro
+                if (valor !== null) {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                } else {
+                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                }
+            }
         }
 
         function toggleLegend() {
@@ -1249,14 +1315,7 @@
         }
 
         function updateGauges(datos) {
-            for (let i = 1; i <= 5; i++) {
-                const valor = parseFloat(document.getElementById(`valor-perno${i}`).textContent);
-                if (!isNaN(valor)) {
-                    gauges[i-1] = valor;
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
-                    document.getElementById(`gaugeValue${i}`).textContent = valor.toFixed(2);
-                }
-            }
+            // Esta función ya no es necesaria
         }
 
         // Inicializar los velocímetros al cargar la página
@@ -1269,6 +1328,98 @@
             // Cargar datos iniciales
             fetchData();
         });
+
+        // Nueva función para crear un gráfico vacío
+        function createEmptyChart() {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const opacity = currentOpacity / 100;
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            const datasets = [];
+            for (let i = 1; i <= 5; i++) {
+                datasets.push({
+                    label: `Perno ${i}`,
+                    data: [],
+                    borderColor: getPernoColor(i),
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    hidden: !selectedPernos.has(i)
+                });
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                zonaTrabajoNormal: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.trabajo.min,
+                                    yMax: zonasConfig.trabajo.max,
+                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaObservacion: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.observacion.min,
+                                    yMax: zonasConfig.observacion.max,
+                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaCritica: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: 0,
+                                    yMax: zonasConfig.critica.max,
+                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                autoSkip: true
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tensión (KLBF)'
+                            },
+                            min: 0,
+                            max: 200
+                        }
+                    }
+                }
+            });
+        }
 
     </script>
 </body>
