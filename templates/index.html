@@ -1104,6 +1104,22 @@
                         duration: 0
                     },
                     plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + ' KLBF';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
@@ -1411,6 +1427,22 @@
                         duration: 0
                     },
                     plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + ' KLBF';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
                         annotation: {
                             annotations: {
                                 zonaTrabajoNormal: {
