@@ -94,25 +94,37 @@
             padding: 5px; 
         }
         .chart-container {
+            position: relative;
             background-color: white;
-            margin: 20px 0;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
             height: 500px;
-            margin-bottom: 140px;
+            margin-bottom: 160px;
         }
         .data-container {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
-        #csv-table {
+        .table-container {
+            position: relative;
+            width: 100%;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #csv-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+        #csv-table.hidden {
+            display: none;
+        }
+        #csv-table table {
+            width: 100%;
+            margin-bottom: 0;
         }
         .button {
             padding: 8px 15px;
@@ -417,6 +429,27 @@
         .button.aplicar-cambios:hover {
             background-color: #d45c27;
         }
+
+        .table-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .export-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: none; /* Se mostrará cuando la tabla sea visible */
+        }
+
+        .export-btn:hover {
+            background-color: #45a049;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
@@ -558,8 +591,14 @@
                     </div>
                 </div>
             </div>
-            
-            <div id="csv-table" class="hidden"></div>
+            <div class="table-container">
+                <div class="table-header">
+                    <button class="button export-btn" onclick="exportToExcel()">
+                        Exportar Excel
+                    </button>
+                </div>
+                <div id="csv-table" class="hidden"></div>
+            </div>
         </div>
     </div>
 
@@ -757,11 +796,12 @@
         function toggleTable() {
             const tableDiv = document.getElementById('csv-table');
             const btn = document.getElementById('toggleTableBtn');
+            const exportBtn = document.querySelector('.export-btn');
             tableVisible = !tableVisible;
             
             if (tableVisible) {
                 btn.textContent = 'Ocultar Tabla';
-                // Cargar todos los datos sin límite
+                exportBtn.style.display = 'block'; // Mostrar botón de exportación
                 fetch('/data')
                     .then(response => response.text())
                     .then(html => {
@@ -771,6 +811,7 @@
             } else {
                 btn.textContent = 'Mostrar Tabla';
                 tableDiv.classList.add('hidden');
+                exportBtn.style.display = 'none'; // Ocultar botón de exportación
             }
         }
 
@@ -1400,6 +1441,22 @@
                     }
                 }
             });
+        }
+
+        function exportToExcel() {
+            // Construir la URL base
+            let url = '/export_excel';
+            
+            // Agregar parámetros de fecha si existen
+            const fechaInicio = document.getElementById('fecha_inicio')?.value;
+            const fechaFin = document.getElementById('fecha_fin')?.value;
+            
+            if (fechaInicio && fechaFin) {
+                url += `?fecha_inicio=${encodeURIComponent(fechaInicio)}&fecha_fin=${encodeURIComponent(fechaFin)}`;
+            }
+            
+            // Redirigir a la URL de exportación
+            window.location.href = url;
         }
 
     </script>

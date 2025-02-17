@@ -1,10 +1,11 @@
-from flask import Flask, redirect, render_template, request, jsonify, session, url_for
+from flask import Flask, redirect, render_template, request, jsonify, session, url_for, send_file
 from flask_caching import Cache
 import pandas as pd
 import psycopg2
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
+import io
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'  # Mejor si viene de variables de entorno
@@ -221,6 +222,76 @@ def get_raspberries():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/export_excel')
+@login_required
+def export_excel():
+    try:
+        # Usar los mismos parámetros que la ruta /data
+        fecha_inicio = request.args.get('fecha_inicio')
+        fecha_fin = request.args.get('fecha_fin')
+        
+        # Base query según el rol del usuario
+        if session['role'] == 'admin':
+            if 'selected_raspberry' in session:
+                base_query = 'SELECT fecha, perno_1, perno_2, perno_3, perno_4, perno_5, raspberry_id FROM public.tension WHERE raspberry_id = %s'
+                params = [int(session['selected_raspberry'])]
+            else:
+                return jsonify({'error': 'No raspberry selected'}), 400
+        else:
+            base_query = """
+                SELECT t.fecha, t.perno_1, t.perno_2, t.perno_3, t.perno_4, t.perno_5, t.raspberry_id 
+                FROM public.tension t
+                JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
+                WHERE ur.user_id = %s
+            """
+            params = [session['user_id']]
+
+        # Agregar condiciones de fecha si existen
+        if fecha_inicio and fecha_fin:
+            base_query += ' AND fecha >= %s AND fecha <= %s'
+            try:
+                fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
+                fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
+                params.extend([fecha_inicio, fecha_fin])
+            except ValueError as e:
+                return jsonify({'error': 'Invalid date format'}), 400
+
+        # Ordenar por fecha
+        base_query += ' ORDER BY fecha DESC'
+
+        # Obtener los datos
+        conn = get_db_connection()
+        df = pd.read_sql_query(base_query, conn, params=params)
+        conn.close()
+
+        # Renombrar las columnas para el Excel
+        df = df.rename(columns={
+            'fecha': 'Fecha y Hora',
+            'perno_1': 'Perno 1',
+            'perno_2': 'Perno 2',
+            'perno_3': 'Perno 3',
+            'perno_4': 'Perno 4',
+            'perno_5': 'Perno 5',
+            'raspberry_id': 'Molino'
+        })
+
+        # Crear el archivo Excel en memoria
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Datos', index=False)
+
+        output.seek(0)
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='datos_tension.xlsx'
+        )
+
+    except Exception as e:
+        print(f"Export error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
