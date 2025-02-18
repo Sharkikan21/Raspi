@@ -622,15 +622,36 @@
                 max: 90
             }
         };
-        // Cargar configuración guardada si existe
-        const savedConfig = localStorage.getItem('zonasConfig');
-        if (savedConfig) {
-            zonasConfig = JSON.parse(savedConfig);
+
+        // Función para obtener el ID de Raspberry actual
+        function getCurrentRaspberryId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('raspberry_id') || 'default';
         }
+
+        // Función para cargar la configuración específica de la Raspberry
+        function loadRaspberryConfig() {
+            const raspberryId = getCurrentRaspberryId();
+            const savedConfig = localStorage.getItem(`zonasConfig_${raspberryId}`);
+            if (savedConfig) {
+                zonasConfig = JSON.parse(savedConfig);
+            } else {
+                // Configuración por defecto si no hay guardada
+                zonasConfig = {
+                    trabajo: { min: 115, max: 175 },
+                    observacion: { min: 90, max: 115 },
+                    critica: { min: 0, max: 90 }
+                };
+            }
+            return zonasConfig;
+        }
+
+        // Cargar la configuración inicial
+        loadRaspberryConfig();
 
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
-        let currentOpacity = parseInt(localStorage.getItem('zonasOpacidad')) || 20;
+        let currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${getCurrentRaspberryId()}`)) || 20;
         let isLegendMinimized = false;
 
         const gauges = [];
@@ -897,8 +918,9 @@
             zonasConfig.observacion.max = parseFloat(document.getElementById('zonaObservacionMax').value);
             zonasConfig.critica.max = parseFloat(document.getElementById('zonaCriticaMax').value);
 
-            // Guardar la configuración en localStorage
-            localStorage.setItem('zonasConfig', JSON.stringify(zonasConfig));
+            // Guardar la configuración específica de la Raspberry
+            const raspberryId = getCurrentRaspberryId();
+            localStorage.setItem(`zonasConfig_${raspberryId}`, JSON.stringify(zonasConfig));
 
             // Actualizar el texto en el recuadro de leyenda
             document.querySelector('.legend-item:nth-child(1) span').textContent = 
@@ -1017,12 +1039,37 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Cargar la configuración específica de la Raspberry actual
+            const config = loadRaspberryConfig();
+            
+            // Cargar y establecer los valores guardados en los inputs
+            document.getElementById('zonaTrabajoMin').value = config.trabajo.min;
+            document.getElementById('zonaTrabajoMax').value = config.trabajo.max;
+            document.getElementById('zonaObservacionMin').value = config.observacion.min;
+            document.getElementById('zonaObservacionMax').value = config.observacion.max;
+            document.getElementById('zonaCriticaMax').value = config.critica.max;
+            
+            // Establecer la opacidad guardada
+            const raspberryId = getCurrentRaspberryId();
+            currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${raspberryId}`)) || 20;
+            document.getElementById('zonasOpacidad').value = currentOpacity;
+            document.getElementById('opacidadValue').textContent = currentOpacity + '%';
+
+            // Inicializar velocímetros
+            for (let i = 0; i < 5; i++) {
+                drawGauge(ctxs[i], gaugeCanvases[i], 0);
+            }
+            
+            // Configurar eventos de los checkboxes de pernos
             const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
             pernoCheckboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', function() {
-                    togglePerno(parseInt(this.dataset.perno));
+                    togglePerno(parseInt(this.value));
                 });
             });
+
+            // Iniciar la carga de datos
+            fetchData();
         });
 
         function loadRaspberries() {
@@ -1058,8 +1105,9 @@
             document.getElementById('opacidadValue').textContent = value + '%';
             const opacity = value / 100;
             
-            // Guardar la opacidad en localStorage
-            localStorage.setItem('zonasOpacidad', value);
+            // Guardar la opacidad específica de la Raspberry
+            const raspberryId = getCurrentRaspberryId();
+            localStorage.setItem(`zonasOpacidad_${raspberryId}`, value);
             
             if (chart) {
                 updateChartZonesOpacity(opacity);
@@ -1365,163 +1413,6 @@
 
         function updateGauges(datos) {
             // Esta función ya no es necesaria
-        }
-
-        // Inicializar los velocímetros al cargar la página
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar y establecer los valores guardados en los inputs
-            if (savedConfig) {
-                document.getElementById('zonaTrabajoMin').value = zonasConfig.trabajo.min;
-                document.getElementById('zonaTrabajoMax').value = zonasConfig.trabajo.max;
-                document.getElementById('zonaObservacionMin').value = zonasConfig.observacion.min;
-                document.getElementById('zonaObservacionMax').value = zonasConfig.observacion.max;
-                document.getElementById('zonaCriticaMax').value = zonasConfig.critica.max;
-            }
-            
-            // Establecer la opacidad guardada
-            document.getElementById('zonasOpacidad').value = currentOpacity;
-            document.getElementById('opacidadValue').textContent = currentOpacity + '%';
-
-            // Inicializar velocímetros
-            for (let i = 0; i < 5; i++) {
-                drawGauge(ctxs[i], gaugeCanvases[i], 0);
-            }
-            
-            // Cargar datos iniciales y comenzar monitoreo en tiempo real
-            fetch('/data?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.fechas && data.fechas.length > 0) {
-                        createChart(data.fechas, data);
-                        lastTimestamp = data.fechas[data.fechas.length - 1];
-                        
-                        // Actualizar velocímetros y últimos valores
-                        for (let i = 1; i <= 5; i++) {
-                            const pernoKey = `perno_${i}`;
-                            if (data[pernoKey] && data[pernoKey].length > 0) {
-                                const ultimoValor = data[pernoKey][data[pernoKey].length - 1];
-                                const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
-                                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
-                                if (ultimoValor !== null) {
-                                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], ultimoValor);
-                                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                                }
-                            }
-                        }
-                        
-                        // Iniciar el intervalo para nuevos datos
-                        realTimeInterval = setInterval(fetchRealTimeData, 5000);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        });
-
-        // Nueva función para crear un gráfico vacío
-        function createEmptyChart() {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            const opacity = currentOpacity / 100;
-            
-            if (chart) {
-                chart.destroy();
-            }
-
-            const datasets = [];
-            for (let i = 1; i <= 5; i++) {
-                datasets.push({
-                    label: `Perno ${i}`,
-                    data: [],
-                    borderColor: getPernoColor(i),
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    hidden: !selectedPernos.has(i)
-                });
-            }
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 0
-                    },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y.toFixed(2) + ' KLBF';
-                                    }
-                                    return label;
-                                }
-                            }
-                        },
-                        annotation: {
-                            annotations: {
-                                zonaTrabajoNormal: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.trabajo.min,
-                                    yMax: zonasConfig.trabajo.max,
-                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaObservacion: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.observacion.min,
-                                    yMax: zonasConfig.observacion.max,
-                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaCritica: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: 0,
-                                    yMax: zonasConfig.critica.max,
-                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fecha y Hora'
-                            },
-                            ticks: {
-                                maxTicksLimit: 10,
-                                autoSkip: true
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200
-                        }
-                    }
-                }
-            });
         }
 
         function exportToExcel() {
