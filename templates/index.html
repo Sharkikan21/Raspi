@@ -622,9 +622,15 @@
                 max: 90
             }
         };
+        // Cargar configuración guardada si existe
+        const savedConfig = localStorage.getItem('zonasConfig');
+        if (savedConfig) {
+            zonasConfig = JSON.parse(savedConfig);
+        }
+
         let selectedPernos = new Set([1, 2, 3, 4, 5]);
         let selectedRaspberries = new Set();
-        let currentOpacity = 20; // Cambiado de 40 a 20
+        let currentOpacity = parseInt(localStorage.getItem('zonasOpacidad')) || 20;
         let isLegendMinimized = false;
 
         const gauges = [];
@@ -891,6 +897,9 @@
             zonasConfig.observacion.max = parseFloat(document.getElementById('zonaObservacionMax').value);
             zonasConfig.critica.max = parseFloat(document.getElementById('zonaCriticaMax').value);
 
+            // Guardar la configuración en localStorage
+            localStorage.setItem('zonasConfig', JSON.stringify(zonasConfig));
+
             // Actualizar el texto en el recuadro de leyenda
             document.querySelector('.legend-item:nth-child(1) span').textContent = 
                 `Zona de Trabajo Normal (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max})`;
@@ -1045,9 +1054,12 @@
 
         // Función para actualizar la opacidad de las zonas
         function updateZonasOpacidad(value) {
-            currentOpacity = parseInt(value); // Actualizar la variable global
+            currentOpacity = parseInt(value);
             document.getElementById('opacidadValue').textContent = value + '%';
             const opacity = value / 100;
+            
+            // Guardar la opacidad en localStorage
+            localStorage.setItem('zonasOpacidad', value);
             
             if (chart) {
                 updateChartZonesOpacity(opacity);
@@ -1357,6 +1369,19 @@
 
         // Inicializar los velocímetros al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
+            // Cargar y establecer los valores guardados en los inputs
+            if (savedConfig) {
+                document.getElementById('zonaTrabajoMin').value = zonasConfig.trabajo.min;
+                document.getElementById('zonaTrabajoMax').value = zonasConfig.trabajo.max;
+                document.getElementById('zonaObservacionMin').value = zonasConfig.observacion.min;
+                document.getElementById('zonaObservacionMax').value = zonasConfig.observacion.max;
+                document.getElementById('zonaCriticaMax').value = zonasConfig.critica.max;
+            }
+            
+            // Establecer la opacidad guardada
+            document.getElementById('zonasOpacidad').value = currentOpacity;
+            document.getElementById('opacidadValue').textContent = currentOpacity + '%';
+
             // Inicializar velocímetros
             for (let i = 0; i < 5; i++) {
                 drawGauge(ctxs[i], gaugeCanvases[i], 0);
