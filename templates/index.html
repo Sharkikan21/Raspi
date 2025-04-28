@@ -473,24 +473,9 @@
             <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
             <div class="pernos-selector">
                 <p>Seleccionar Pernos:</p>
-                <div class="checkbox-group">
+                <div class="checkbox-group" id="pernosCheckboxes">
                     <label>
                         <input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos
-                    </label>
-                    <label>
-                        <input type="checkbox" class="perno-checkbox" value="1" checked> Perno 1
-                    </label>
-                    <label>
-                        <input type="checkbox" class="perno-checkbox" value="2" checked> Perno 2
-                    </label>
-                    <label>
-                        <input type="checkbox" class="perno-checkbox" value="3" checked> Perno 3
-                    </label>
-                    <label>
-                        <input type="checkbox" class="perno-checkbox" value="4" checked> Perno 4
-                    </label>
-                    <label>
-                        <input type="checkbox" class="perno-checkbox" value="5" checked> Perno 5
                     </label>
                 </div>
             </div>
@@ -499,42 +484,12 @@
         
         <div class="ultimos-valores">
             <h3>Últimos Valores:</h3>
-            <div class="valores-container">
-                <span>Perno 1: <strong id="valor-perno1">--</strong></span>
-                <span>Perno 2: <strong id="valor-perno2">--</strong></span>
-                <span>Perno 3: <strong id="valor-perno3">--</strong></span>
-                <span>Perno 4: <strong id="valor-perno4">--</strong></span>
-                <span>Perno 5: <strong id="valor-perno5">--</strong></span>
+            <div class="valores-container" id="ultimosValoresContainer">
             </div>
         </div>
 
         <div class="gauge-container">
-            <div class="gauge-grid">
-                <div class="gauge-item">
-                    <h3>Perno 1</h3>
-                    <canvas id="gaugeCanvas1"></canvas>
-                    <div class="gauge-label"><span id="gaugeValue1">0</span> KLBF</div>
-                </div>
-                <div class="gauge-item">
-                    <h3>Perno 2</h3>
-                    <canvas id="gaugeCanvas2"></canvas>
-                    <div class="gauge-label"><span id="gaugeValue2">0</span> KLBF</div>
-                </div>
-                <div class="gauge-item">
-                    <h3>Perno 3</h3>
-                    <canvas id="gaugeCanvas3"></canvas>
-                    <div class="gauge-label"><span id="gaugeValue3">0</span> KLBF</div>
-                </div>
-                <div class="gauge-item">
-                    <h3>Perno 4</h3>
-                    <canvas id="gaugeCanvas4"></canvas>
-                    <div class="gauge-label"><span id="gaugeValue4">0</span> KLBF</div>
-                </div>
-                <div class="gauge-item">
-                    <h3>Perno 5</h3>
-                    <canvas id="gaugeCanvas5"></canvas>
-                    <div class="gauge-label"><span id="gaugeValue5">0</span> KLBF</div>
-                </div>
+            <div class="gauge-grid" id="gaugeGrid">
             </div>
         </div>
         
@@ -606,8 +561,11 @@
         let tableVisible = false;
         let isRealTime = true;
         let realTimeInterval = null;
-        let MAX_POINTS = 0; // Se actualizará dinámicamente según los datos disponibles
+        let MAX_POINTS = 0;
         let lastTimestamp = null;
+        let selectedPernos = new Set();
+        let currentOpacity = 20;
+        let isLegendMinimized = false;
         let zonasConfig = {
             trabajo: {
                 min: 115,
@@ -622,6 +580,11 @@
                 max: 90
             }
         };
+
+        // Array para almacenar los elementos de los gauges
+        const gauges = [];
+        const gaugeCanvases = [];
+        const ctxs = [];
 
         // Función para obtener el ID de Raspberry actual
         function getCurrentRaspberryId() {
@@ -646,26 +609,287 @@
             return zonasConfig;
         }
 
-        // Cargar la configuración inicial
-        loadRaspberryConfig();
-
-        let selectedPernos = new Set([1, 2, 3, 4, 5]);
-        let selectedRaspberries = new Set();
-        let currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${getCurrentRaspberryId()}`)) || 20;
-        let isLegendMinimized = false;
-
-        const gauges = [];
-        const gaugeCanvases = [];
-        const ctxs = [];
-
-        // Inicializar los velocímetros
-        for (let i = 1; i <= 5; i++) {
-            const canvas = document.getElementById(`gaugeCanvas${i}`);
-            const ctx = canvas.getContext("2d");
-            gaugeCanvases.push(canvas);
-            ctxs.push(ctx);
-            gauges.push(0);
+        // Función auxiliar para obtener colores de los pernos
+        function getPernoColor(index) {
+            // Generar un color único para cada perno usando HSL
+            const hue = (index * 137.508) % 360; // Usar el ángulo áureo para distribuir los colores
+            return `hsl(${hue}, 70%, 50%)`;
         }
+
+        // Función para crear los elementos dinámicamente
+        function createDynamicElements(data) {
+            // Limpiar contenedores existentes
+            document.getElementById('pernosCheckboxes').innerHTML = '<label><input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos</label>';
+            document.getElementById('ultimosValoresContainer').innerHTML = '';
+            document.getElementById('gaugeGrid').innerHTML = '';
+            
+            // Reset arrays
+            gauges.length = 0;
+            gaugeCanvases.length = 0;
+            ctxs.length = 0;
+            selectedPernos.clear();
+            
+            // Obtener lista de pernos disponibles
+            const availablePernos = Object.keys(data)
+                .filter(key => key.startsWith('perno_'))
+                .map(key => parseInt(key.split('_')[1]))
+                .sort((a, b) => a - b);
+
+            // Crear checkboxes
+            availablePernos.forEach(pernoNum => {
+                selectedPernos.add(pernoNum);
+                const checkboxLabel = document.createElement('label');
+                checkboxLabel.innerHTML = `<input type="checkbox" class="perno-checkbox" value="${pernoNum}" checked> Perno ${pernoNum}`;
+                document.getElementById('pernosCheckboxes').appendChild(checkboxLabel);
+                
+                // Crear elemento para último valor
+                const valorSpan = document.createElement('span');
+                valorSpan.innerHTML = `Perno ${pernoNum}: <strong id="valor-perno${pernoNum}">--</strong>`;
+                document.getElementById('ultimosValoresContainer').appendChild(valorSpan);
+                
+                // Crear gauge
+                const gaugeItem = document.createElement('div');
+                gaugeItem.className = 'gauge-item';
+                gaugeItem.innerHTML = `
+                    <h3>Perno ${pernoNum}</h3>
+                    <canvas id="gaugeCanvas${pernoNum}"></canvas>
+                    <div class="gauge-label"><span id="gaugeValue${pernoNum}">0</span> KLBF</div>
+                `;
+                document.getElementById('gaugeGrid').appendChild(gaugeItem);
+                
+                // Inicializar gauge
+                const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
+                const ctx = canvas.getContext("2d");
+                gaugeCanvases.push(canvas);
+                ctxs.push(ctx);
+                gauges.push(0);
+                drawGauge(ctx, canvas, 0);
+            });
+
+            // Configurar eventos para los checkboxes
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    togglePerno(parseInt(this.value));
+                });
+            });
+        }
+
+        function toggleTodos() {
+            const todosCheckbox = document.getElementById('todos');
+            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
+            
+            pernoCheckboxes.forEach(checkbox => {
+                checkbox.checked = todosCheckbox.checked;
+                const pernoNum = parseInt(checkbox.value);
+                if (todosCheckbox.checked) {
+                    selectedPernos.add(pernoNum);
+                } else {
+                    selectedPernos.delete(pernoNum);
+                }
+            });
+            
+            if (chart) {
+                chart.data.datasets.forEach((dataset, index) => {
+                    dataset.hidden = !todosCheckbox.checked;
+                });
+                chart.update();
+            }
+        }
+
+        function togglePerno(pernoNum) {
+            const checkbox = document.querySelector(`.perno-checkbox[value="${pernoNum}"]`);
+            if (checkbox.checked) {
+                selectedPernos.add(pernoNum);
+            } else {
+                selectedPernos.delete(pernoNum);
+                document.getElementById('todos').checked = false;
+            }
+            
+            if (chart) {
+                const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === `Perno ${pernoNum}`);
+                if (datasetIndex !== -1) {
+                    chart.data.datasets[datasetIndex].hidden = !checkbox.checked;
+                    chart.update();
+                }
+            }
+        }
+
+        // Modificar la función createChart para usar los pernos disponibles
+        function createChart(fechas, datos) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const opacity = currentOpacity / 100;
+            
+            if (chart) {
+                chart.destroy();
+            }
+
+            const datasets = [];
+            // Obtener lista de pernos disponibles
+            const availablePernos = Object.keys(datos)
+                .filter(key => key.startsWith('perno_'))
+                .map(key => parseInt(key.split('_')[1]))
+                .sort((a, b) => a - b);
+
+            availablePernos.forEach(pernoNum => {
+                const pernoKey = `perno_${pernoNum}`;
+                if (datos[pernoKey]) {
+                    datasets.push({
+                        label: `Perno ${pernoNum}`,
+                        data: datos[pernoKey],
+                        borderColor: getPernoColor(pernoNum),
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        hidden: !selectedPernos.has(pernoNum)
+                    });
+                }
+            });
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: fechas,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(2) + ' KLBF';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                zonaTrabajoNormal: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.trabajo.min,
+                                    yMax: zonasConfig.trabajo.max,
+                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaObservacion: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: zonasConfig.observacion.min,
+                                    yMax: zonasConfig.observacion.max,
+                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                },
+                                zonaCritica: {
+                                    type: 'box',
+                                    xScaleID: 'x',
+                                    yScaleID: 'y',
+                                    yMin: 0,
+                                    yMax: zonasConfig.critica.max,
+                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
+                                    borderColor: 'transparent'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Fecha y Hora'
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                autoSkip: true
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Tensión (KLBF)'
+                            },
+                            min: 0,
+                            max: 200
+                        }
+                    }
+                }
+            });
+        }
+
+        // Modificar la función que maneja los datos iniciales
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar la configuración específica de la Raspberry actual
+            const config = loadRaspberryConfig();
+            
+            // Cargar y establecer los valores guardados en los inputs
+            document.getElementById('zonaTrabajoMin').value = config.trabajo.min;
+            document.getElementById('zonaTrabajoMax').value = config.trabajo.max;
+            document.getElementById('zonaObservacionMin').value = config.observacion.min;
+            document.getElementById('zonaObservacionMax').value = config.observacion.max;
+            document.getElementById('zonaCriticaMax').value = config.critica.max;
+            
+            // Establecer la opacidad guardada
+            const raspberryId = getCurrentRaspberryId();
+            currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${raspberryId}`)) || 20;
+            document.getElementById('zonasOpacidad').value = currentOpacity;
+            document.getElementById('opacidadValue').textContent = currentOpacity + '%';
+
+            // Cargar datos iniciales y comenzar monitoreo en tiempo real
+            fetch('/data?format=json')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.fechas && data.fechas.length > 0) {
+                        // Crear elementos dinámicamente
+                        createDynamicElements(data);
+                        
+                        // Actualizar MAX_POINTS con la cantidad total de datos
+                        MAX_POINTS = data.fechas.length;
+                        
+                        createChart(data.fechas, data);
+                        lastTimestamp = data.fechas[data.fechas.length - 1];
+                        
+                        // Actualizar velocímetros y últimos valores
+                        Object.keys(data).forEach(key => {
+                            if (key.startsWith('perno_')) {
+                                const pernoNum = parseInt(key.split('_')[1]);
+                                const ultimoValor = data[key][data[key].length - 1];
+                                const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
+                                
+                                document.getElementById(`valor-perno${pernoNum}`).textContent = valorFormateado;
+                                if (ultimoValor !== null) {
+                                    const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
+                                    const ctx = canvas.getContext("2d");
+                                    drawGauge(ctx, canvas, ultimoValor);
+                                    document.getElementById(`gaugeValue${pernoNum}`).textContent = valorFormateado;
+                                }
+                            }
+                        });
+                        
+                        // Iniciar el intervalo para nuevos datos
+                        if (realTimeInterval) {
+                            clearInterval(realTimeInterval);
+                        }
+                        realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
 
         function toggleRealTime() {
             isRealTime = !isRealTime;
@@ -694,7 +918,7 @@
                             lastTimestamp = data.fechas[data.fechas.length - 1];
                             
                             // Actualizar velocímetros y últimos valores con el dato más reciente
-                            for (let i = 1; i <= 5; i++) {
+                            for (let i = 1; i <= 50; i++) {
                                 const pernoKey = `perno_${i}`;
                                 if (data[pernoKey] && data[pernoKey].length > 0) {
                                     const ultimoValor = data[pernoKey][data[pernoKey].length - 1];
@@ -801,7 +1025,7 @@
         }
 
         function updateUltimosValores(datos) {
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 50; i++) {
                 const pernoKey = `perno_${i}`;
                 const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
                     datos[pernoKey][datos[pernoKey].length - 1] : null;
@@ -872,7 +1096,7 @@
             if (newData.isRaspiUser) {
                 return JSON.stringify(currentData.datasets[0].data) !== JSON.stringify(newData.medicion);
             } else {
-                for (let i = 0; i < 5; i++) {
+                for (let i = 0; i < 50; i++) {
                     const pernoKey = `perno_${i+1}`;
                     if (newData[pernoKey] && 
                         JSON.stringify(currentData.datasets[i].data) !== JSON.stringify(newData[pernoKey])) {
@@ -1016,95 +1240,15 @@
             }
         }
 
-        function togglePerno(pernoNum) {
-            const checkbox = document.querySelector(`.perno-checkbox[data-perno="${pernoNum}"]`);
-            if (checkbox.checked) {
-                selectedPernos.add(pernoNum);
-            } else {
-                selectedPernos.delete(pernoNum);
-                document.getElementById('selectAll').checked = false;
-            }
-            
-            if (chart) {
-                chart.data.datasets[pernoNum - 1].hidden = !checkbox.checked;
-                chart.update();
-            }
-        }
-
         function updateChartVisibility() {
             if (!chart) return;
             
             // Actualizar visibilidad de cada perno
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 50; i++) {
                 chart.data.datasets[i].hidden = !selectedPernos.has(i + 1);
             }
             chart.update();
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar la configuración específica de la Raspberry actual
-            const config = loadRaspberryConfig();
-            
-            // Cargar y establecer los valores guardados en los inputs
-            document.getElementById('zonaTrabajoMin').value = config.trabajo.min;
-            document.getElementById('zonaTrabajoMax').value = config.trabajo.max;
-            document.getElementById('zonaObservacionMin').value = config.observacion.min;
-            document.getElementById('zonaObservacionMax').value = config.observacion.max;
-            document.getElementById('zonaCriticaMax').value = config.critica.max;
-            
-            // Establecer la opacidad guardada
-            const raspberryId = getCurrentRaspberryId();
-            currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${raspberryId}`)) || 20;
-            document.getElementById('zonasOpacidad').value = currentOpacity;
-            document.getElementById('opacidadValue').textContent = currentOpacity + '%';
-
-            // Inicializar velocímetros
-            for (let i = 0; i < 5; i++) {
-                drawGauge(ctxs[i], gaugeCanvases[i], 0);
-            }
-            
-            // Configurar eventos de los checkboxes de pernos
-            const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
-            pernoCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    togglePerno(parseInt(this.value));
-                });
-            });
-
-            // Cargar datos iniciales y comenzar monitoreo en tiempo real
-            fetch('/data?format=json')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.fechas && data.fechas.length > 0) {
-                        // Actualizar MAX_POINTS con la cantidad total de datos
-                        MAX_POINTS = data.fechas.length;
-                        
-                        createChart(data.fechas, data);
-                        lastTimestamp = data.fechas[data.fechas.length - 1];
-                        
-                        // Actualizar velocímetros y últimos valores
-                        for (let i = 1; i <= 5; i++) {
-                            const pernoKey = `perno_${i}`;
-                            if (data[pernoKey] && data[pernoKey].length > 0) {
-                                const ultimoValor = data[pernoKey][data[pernoKey].length - 1];
-                                const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
-                                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
-                                if (ultimoValor !== null) {
-                                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], ultimoValor);
-                                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                                }
-                            }
-                        }
-                        
-                        // Iniciar el intervalo para nuevos datos
-                        if (realTimeInterval) {
-                            clearInterval(realTimeInterval);
-                        }
-                        realTimeInterval = setInterval(fetchRealTimeData, 5000);
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-        });
 
         function loadRaspberries() {
             fetch('/get_raspberries')
@@ -1160,128 +1304,6 @@
             chart.update('none');
         }
 
-        function createChart(fechas, datos) {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            const opacity = currentOpacity / 100;
-            
-            if (chart) {
-                chart.destroy();
-            }
-
-            const datasets = [];
-            for (let i = 1; i <= 5; i++) {
-                const pernoKey = `perno_${i}`;
-                if (datos[pernoKey]) {
-                    datasets.push({
-                        label: `Perno ${i}`,
-                        data: datos[pernoKey],
-                        borderColor: getPernoColor(i),
-                        backgroundColor: 'transparent',
-                        borderWidth: 1,
-                        tension: 0.3,
-                        pointRadius: 0,
-                        hidden: !selectedPernos.has(i)
-                    });
-                }
-            }
-
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: fechas,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: {
-                        duration: 0
-                    },
-                    plugins: {
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        label += context.parsed.y.toFixed(2) + ' KLBF';
-                                    }
-                                    return label;
-                                }
-                            }
-                        },
-                        annotation: {
-                            annotations: {
-                                zonaTrabajoNormal: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.trabajo.min,
-                                    yMax: zonasConfig.trabajo.max,
-                                    backgroundColor: `rgba(0, 200, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaObservacion: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: zonasConfig.observacion.min,
-                                    yMax: zonasConfig.observacion.max,
-                                    backgroundColor: `rgba(255, 255, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                },
-                                zonaCritica: {
-                                    type: 'box',
-                                    xScaleID: 'x',
-                                    yScaleID: 'y',
-                                    yMin: 0,
-                                    yMax: zonasConfig.critica.max,
-                                    backgroundColor: `rgba(255, 0, 0, ${opacity})`,
-                                    borderColor: 'transparent'
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Fecha y Hora'
-                            },
-                            ticks: {
-                                maxTicksLimit: 10,
-                                autoSkip: true
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Tensión (KLBF)'
-                            },
-                            min: 0,
-                            max: 200
-                        }
-                    }
-                }
-            });
-        }
-
-        // Función auxiliar para obtener colores de los pernos
-        function getPernoColor(index) {
-            const colors = [
-                'rgba(200, 0, 0, 1)',        // Rojo intenso para Perno 1
-                'rgba(140, 30, 45, 1)',      // Rosa extremadamente oscuro
-                'rgba(150, 110, 15, 1)',     // Amarillo extremadamente oscuro
-                'rgba(15, 60, 140, 1)',      // Azul extremadamente oscuro
-                'rgba(70, 35, 140, 1)'       // Morado extremadamente oscuro
-            ];
-            return colors[index - 1];
-        }
-
         function updateTableRealTime() {
             if (!tableVisible) return;
 
@@ -1318,7 +1340,7 @@
 
         function updateDisplays(tableData) {
             // Actualizar velocímetros y últimos valores con los datos de la tabla
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 50; i++) {
                 const valor = tableData[`perno_${i}`];
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
                 
@@ -1338,7 +1360,7 @@
 
         function updateDisplaysWithLatestData(data) {
             // Actualizar velocímetros y últimos valores con los datos más recientes
-            for (let i = 1; i <= 5; i++) {
+            for (let i = 1; i <= 50; i++) {
                 const pernoKey = `perno_${i}`;
                 const valor = data[pernoKey] && data[pernoKey].length > 0 ? 
                     data[pernoKey][data[pernoKey].length - 1] : null;

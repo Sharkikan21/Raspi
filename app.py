@@ -8,13 +8,13 @@ from functools import wraps
 import io
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'  # Mejor si viene de variables de entorno
+app.secret_key = 'tu_clave_secreta_aqui'
 app.static_folder = 'static'
 
 # Configuración del caché
 cache = Cache(app, config={
     'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 300  # 5 minutos
+    'CACHE_DEFAULT_TIMEOUT': 300
 })
 
 DB_CONFIG = {
@@ -28,7 +28,6 @@ DB_CONFIG = {
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
-# Decorator para proteger rutas
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -61,10 +60,8 @@ def get_db_data():
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
 
-        # Base query según el rol del usuario
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
-                # Siempre filtrar por la raspberry seleccionada para admins
                 base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
                 params = [int(session['selected_raspberry'])]
             else:
@@ -77,7 +74,6 @@ def get_db_data():
             """
             params = [session['user_id']]
 
-        # Agregar condiciones adicionales
         if after_timestamp:
             base_query += ' AND fecha > %s'
             params.append(after_timestamp)
@@ -87,13 +83,10 @@ def get_db_data():
                 fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
                 fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
                 fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
-                params.extend([fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
-                             fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
+                params.extend([fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'), fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
             except ValueError as e:
-                print(f"Error parsing dates: {e}")
                 return jsonify({'error': 'Invalid date format'}), 400
 
-        # Ordenar por fecha
         if format_type == 'html':
             base_query += ' ORDER BY fecha DESC'
         else:
@@ -109,44 +102,29 @@ def get_db_data():
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
-        # Manejar valores nulos y formatear datos
-        numeric_columns = ['perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5']
-        
-        # Identificar columnas con todos los valores nulos o cero
+        # Detectar columnas válidas de pernos
+        numeric_columns = [f'perno_{i}' for i in range(1, 51)]
         columnas_validas = []
         for col in numeric_columns:
-            if df[col].notna().any() and (df[col] != 0).any():
+            if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
                 columnas_validas.append(col)
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
-        # Renombrar las columnas antes de convertir a HTML
         if format_type == 'html':
-            # Crear un diccionario para renombrar las columnas
-            column_names = {
-                'fecha': 'Fecha y Hora',
-                'perno_1': 'Perno 1',
-                'perno_2': 'Perno 2',
-                'perno_3': 'Perno 3',
-                'perno_4': 'Perno 4',
-                'perno_5': 'Perno 5',
-                'raspberry_id': 'Molino'
-            }
+            # Crear diccionario de nombres de columnas
+            column_names = {'fecha': 'Fecha y Hora', 'raspberry_id': 'Molino'}
+            column_names.update({col: f'Perno {col.split("_")[1]}' for col in columnas_validas})
             
-            # Seleccionar y ordenar las columnas que queremos mostrar
-            column_order = ['fecha', 'perno_1', 'perno_2', 'perno_3', 'perno_4', 'perno_5', 'raspberry_id']
+            # Ordenar columnas: fecha, pernos válidos, raspberry_id
+            column_order = ['fecha'] + columnas_validas + ['raspberry_id']
             df = df[column_order]
-            
-            # Renombrar las columnas
             df = df.rename(columns=column_names)
-            
             return df.to_html(classes='table table-striped', index=False)
         else:
-            # Para formato JSON mantener los nombres originales
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
                 'isAdmin': session['role'] == 'admin'
             }
-            # Solo incluir columnas válidas en el JSON
             for col in columnas_validas:
                 data[col] = df[col].tolist()
             if session['role'] == 'admin':
@@ -156,6 +134,7 @@ def get_db_data():
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({'error': str(e)}) if format_type == 'json' else f"<p>Error: {str(e)}</p>"
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -223,60 +202,65 @@ def get_raspberries():
         cursor.close()
         conn.close()
 
+
 @app.route('/export_excel')
 @login_required
 def export_excel():
     try:
-        # Usar los mismos parámetros que la ruta /data
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         
-        # Base query según el rol del usuario
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
-                base_query = 'SELECT fecha, perno_1, perno_2, perno_3, perno_4, perno_5, raspberry_id FROM public.tension WHERE raspberry_id = %s'
+                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
                 params = [int(session['selected_raspberry'])]
             else:
                 return jsonify({'error': 'No raspberry selected'}), 400
         else:
             base_query = """
-                SELECT t.fecha, t.perno_1, t.perno_2, t.perno_3, t.perno_4, t.perno_5, t.raspberry_id 
-                FROM public.tension t
+                SELECT t.* FROM public.tension t
                 JOIN user_raspberry ur ON t.raspberry_id = ur.raspberry_id
                 WHERE ur.user_id = %s
             """
             params = [session['user_id']]
 
-        # Agregar condiciones de fecha si existen
         if fecha_inicio and fecha_fin:
             base_query += ' AND fecha >= %s AND fecha <= %s'
             try:
                 fecha_inicio = datetime.fromisoformat(fecha_inicio.replace('Z', '+00:00'))
                 fecha_fin = datetime.fromisoformat(fecha_fin.replace('Z', '+00:00'))
-                params.extend([fecha_inicio, fecha_fin])
+                fecha_fin = fecha_fin.replace(hour=23, minute=59, second=59, microsecond=999999)
+                params.extend([fecha_inicio.strftime('%Y-%m-%d %H:%M:%S'),
+                               fecha_fin.strftime('%Y-%m-%d %H:%M:%S')])
             except ValueError as e:
                 return jsonify({'error': 'Invalid date format'}), 400
 
-        # Ordenar por fecha
         base_query += ' ORDER BY fecha DESC'
 
-        # Obtener los datos
         conn = get_db_connection()
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
-        # Renombrar las columnas para el Excel
-        df = df.rename(columns={
-            'fecha': 'Fecha y Hora',
-            'perno_1': 'Perno 1',
-            'perno_2': 'Perno 2',
-            'perno_3': 'Perno 3',
-            'perno_4': 'Perno 4',
-            'perno_5': 'Perno 5',
-            'raspberry_id': 'Molino'
-        })
+        # Detectar columnas válidas de pernos
+        numeric_columns = [f'perno_{i}' for i in range(1, 51)]
+        columnas_validas = []
+        for col in numeric_columns:
+            if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
+                columnas_validas.append(col)
+                df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
-        # Crear el archivo Excel en memoria
+        # Renombrar columnas
+        rename_columns = {'fecha': 'Fecha y Hora', 'raspberry_id': 'Molino'}
+        rename_columns.update({col: f'Perno {col.split("_")[1]}' for col in columnas_validas})
+
+        # Reordenar columnas para Excel
+        columns_order = ['Fecha y Hora'] + sorted([col for col in rename_columns.keys() if col.startswith('perno_')], 
+                                                key=lambda x: int(x.split('_')[1])) + ['Molino']
+
+        df = df[['fecha'] + columnas_validas + ['raspberry_id']]
+        df = df.rename(columns=rename_columns)
+
+        # Exportar a Excel en memoria
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, sheet_name='Datos', index=False)
@@ -292,6 +276,8 @@ def export_excel():
     except Exception as e:
         print(f"Export error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
