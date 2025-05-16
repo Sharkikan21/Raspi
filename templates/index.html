@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,23 +9,27 @@
         @font-face {
             font-family: 'Konkretika Black WIP';
             src: url('{{ url_for("static", filename="fonts/Konkretika-Black-WIP.woff2") }}') format('woff2'),
-                 url('{{ url_for("static", filename="fonts/Konkretika-Black-WIP.woff") }}') format('woff');
+            url('{{ url_for("static", filename="fonts/Konkretika-Black-WIP.woff") }}') format('woff');
             font-weight: normal;
             font-style: normal;
         }
 
-        body { 
-            font-family: 'Konkretika Black WIP', Arial, sans-serif; 
-            margin: 0; 
+        body {
+            font-family: 'Konkretika Black WIP', Arial, sans-serif;
+            margin: 0;
             padding: 20px;
             background-color: #11333F;
             color: #333;
         }
 
-        .filter-container, .data-container, .ultimos-valores, .gauge-container, .zonas-container { 
+        .filter-container,
+        .data-container,
+        .ultimos-valores,
+        .gauge-container,
+        .zonas-container {
             background-color: white;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
             padding: 20px;
         }
@@ -64,7 +69,7 @@
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
         }
 
         /* Ajuste del contraste para mejor legibilidad */
@@ -78,54 +83,78 @@
             font-size: 16px;
         }
 
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        .filter-container { 
+        h1 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .filter-container {
             margin-bottom: 20px;
             padding: 15px;
             background-color: white;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .filter-container input { 
-            margin-right: 10px; 
-            padding: 5px; 
+
+        .filter-container input {
+            margin-right: 10px;
+            padding: 5px;
         }
+
         .chart-container {
             position: relative;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             height: 500px;
             margin-bottom: 160px;
         }
+
         .data-container {
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
+
         .table-container {
             position: relative;
             width: 100%;
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         #csv-table {
             width: 100%;
             overflow-x: auto;
         }
+
         #csv-table.hidden {
             display: none;
         }
+
         #csv-table table {
             width: 100%;
             margin-bottom: 0;
         }
+
         .button {
             padding: 8px 15px;
             color: white;
@@ -136,91 +165,109 @@
             font-size: 14px;
             font-family: 'Konkretika Black WIP', Arial, sans-serif;
         }
+
         .button:hover {
             background-color: #45a049;
         }
+
         .hidden {
             display: none;
         }
+
         #toggleTableBtn {
             background-color: #EAE4D0;
             color: #333;
         }
+
         #toggleTableBtn:hover {
             background-color: #d9d1b8;
         }
+
         #realTimeBtn {
             background-color: #EC682B;
         }
+
         #realTimeBtn:hover {
             background-color: #d45c27;
         }
+
         #realTimeBtn.active {
             background-color: #c04f1f;
         }
+
         .filter-container.disabled input,
         .filter-container.disabled button.filter-btn {
             opacity: 0.5;
             pointer-events: none;
         }
+
         .zonas-container {
             background-color: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
             margin: 10px 0;
         }
+
         .zonas-container.hidden {
             display: none;
         }
+
         .zona-config {
             display: flex;
             flex-direction: column;
             gap: 10px;
             margin: 10px 0;
         }
+
         .zona-group {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .zona-group label {
             min-width: 150px;
             font-weight: bold;
         }
+
         .zona-group input {
             width: 70px;
             padding: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+
         #zonasBtn {
             background-color: #616160;
         }
+
         #zonasBtn:hover {
             background-color: #4a4a49;
         }
+
         #zonasBtn.active {
             background-color: #37474f;
         }
+
         .pernos-selector {
             margin: 10px 0;
             padding: 10px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
-        
+
         .pernos-selector p {
             margin: 0 0 10px 0;
             font-weight: bold;
         }
-        
+
         .checkbox-group {
             margin: 10px 0;
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
         }
-        
+
         .checkbox-group label {
             display: flex;
             align-items: center;
@@ -228,48 +275,51 @@
             cursor: pointer;
             user-select: none;
         }
-        
+
         .checkbox-group input[type="checkbox"] {
             margin: 0;
             cursor: pointer;
         }
+
         .raspberry-selector {
             margin: 20px 0;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
-        
+
         .raspberry-selector h3 {
             margin-bottom: 15px;
             color: #333;
         }
-        
+
         .checkbox-group {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
         }
-        
+
         .checkbox-group label {
             display: flex;
             align-items: center;
             gap: 5px;
             cursor: pointer;
         }
-        
+
         .checkbox-group input[type="checkbox"] {
             margin: 0;
         }
+
         .zona-group input[type="range"] {
             width: 200px;
             margin: 0 10px;
         }
-        
+
         #opacidadValue {
             min-width: 45px;
             display: inline-block;
         }
+
         .zone-legend {
             position: absolute;
             bottom: -120px;
@@ -277,7 +327,7 @@
             background: white;
             padding: 10px;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             max-width: 250px;
         }
@@ -310,7 +360,7 @@
             width: 20px;
             height: 15px;
             margin-right: 8px;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .color-box.normal {
@@ -334,7 +384,7 @@
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
 
@@ -357,12 +407,13 @@
         .valores-container strong {
             font-size: 16px;
         }
+
         .gauge-container {
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }   
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
         .gauge-grid {
             display: grid;
@@ -426,6 +477,7 @@
         .button.aplicar-cambios {
             background-color: #EC682B;
         }
+
         .button.aplicar-cambios:hover {
             background-color: #d45c27;
         }
@@ -444,7 +496,8 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
-            display: none; /* Se mostrará cuando la tabla sea visible */
+            display: none;
+            /* Se mostrará cuando la tabla sea visible */
         }
 
         .export-btn:hover {
@@ -454,15 +507,23 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
 </head>
+
 <body>
     <div class="main-container">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <img src="{{ url_for('static', filename='forymec_png_Mesa_de_trabajo_1.png') }}" alt="Forymec" class="logo-header">
+            <img src="{{ url_for('static', filename='forymec_png_Mesa_de_trabajo_1.png') }}" alt="Forymec"
+                class="logo-header">
             <div>
                 {% if session['role'] == 'admin' %}
-                    <button onclick="window.location.href='{{ url_for('dashboard') }}'" class="button" style="background-color: #EAE4D0; color: #333;">
-                        Cambiar Raspberry
-                    </button>
+                <button onclick="window.location.href='{{ url_for('dashboard') }}'" class="button"
+                    style="background-color: #EAE4D0; color: #333;">
+                    Cambiar Raspberry
+                </button>
+                <button
+                    onclick="window.location.href='{{ url_for('editar_pernos', raspberry_id=session['selected_raspberry']) }}'"
+                    class="button" style="background-color: #4CAF50; color: white;">
+                    Editar Pernos
+                </button>
                 {% endif %}
                 <button onclick="window.location.href='{{ url_for('logout') }}'" class="button logout">
                     Cerrar Sesión
@@ -481,7 +542,7 @@
             </div>
             <button class="button" id="toggleTableBtn" onclick="toggleTable()">Mostrar Tabla</button>
         </div>
-        
+
         <div class="ultimos-valores">
             <h3>Últimos Valores:</h3>
             <div class="valores-container" id="ultimosValoresContainer">
@@ -492,8 +553,8 @@
             <div class="gauge-grid" id="gaugeGrid">
             </div>
         </div>
-        
-        
+
+
         <div id="zonasContainer" class="zonas-container hidden">
             <h3>Configuración de Zonas</h3>
             <div class="zona-config">
@@ -513,14 +574,14 @@
                 </div>
                 <div class="zona-group">
                     <label>Opacidad de zonas:</label>
-                    <input type="range" id="zonasOpacidad" min="0" max="100" value="20" 
-                           oninput="updateZonasOpacidad(this.value)">
+                    <input type="range" id="zonasOpacidad" min="0" max="100" value="20"
+                        oninput="updateZonasOpacidad(this.value)">
                     <span id="opacidadValue">20%</span>
                 </div>
             </div>
             <button class="button aplicar-cambios" onclick="updateZonas()">Aplicar Cambios</button>
         </div>
-        
+
         <div class="data-container">
             <div class="chart-container">
                 <canvas id="myChart" style="width: 100%; height: 100%;"></canvas>
@@ -622,13 +683,13 @@
             document.getElementById('pernosCheckboxes').innerHTML = '<label><input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos</label>';
             document.getElementById('ultimosValoresContainer').innerHTML = '';
             document.getElementById('gaugeGrid').innerHTML = '';
-            
+
             // Reset arrays
             gauges.length = 0;
             gaugeCanvases.length = 0;
             ctxs.length = 0;
             selectedPernos.clear();
-            
+
             // Obtener lista de pernos disponibles
             const availablePernos = Object.keys(data)
                 .filter(key => key.startsWith('perno_'))
@@ -638,25 +699,26 @@
             // Crear checkboxes
             availablePernos.forEach(pernoNum => {
                 selectedPernos.add(pernoNum);
+                const pernoName = data.perno_names && data.perno_names[pernoNum] ? data.perno_names[pernoNum] : `Perno ${pernoNum}`;
                 const checkboxLabel = document.createElement('label');
-                checkboxLabel.innerHTML = `<input type="checkbox" class="perno-checkbox" value="${pernoNum}" checked> Perno ${pernoNum}`;
+                checkboxLabel.innerHTML = `<input type="checkbox" class="perno-checkbox" value="${pernoNum}" checked> ${pernoName}`;
                 document.getElementById('pernosCheckboxes').appendChild(checkboxLabel);
-                
+
                 // Crear elemento para último valor
                 const valorSpan = document.createElement('span');
-                valorSpan.innerHTML = `Perno ${pernoNum}: <strong id="valor-perno${pernoNum}">--</strong>`;
+                valorSpan.innerHTML = `${pernoName}: <strong id="valor-perno${pernoNum}">--</strong>`;
                 document.getElementById('ultimosValoresContainer').appendChild(valorSpan);
-                
+
                 // Crear gauge
                 const gaugeItem = document.createElement('div');
                 gaugeItem.className = 'gauge-item';
                 gaugeItem.innerHTML = `
-                    <h3>Perno ${pernoNum}</h3>
+                    <h3>${pernoName}</h3>
                     <canvas id="gaugeCanvas${pernoNum}"></canvas>
                     <div class="gauge-label"><span id="gaugeValue${pernoNum}">0</span> KLBF</div>
                 `;
                 document.getElementById('gaugeGrid').appendChild(gaugeItem);
-                
+
                 // Inicializar gauge
                 const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
                 const ctx = canvas.getContext("2d");
@@ -669,7 +731,7 @@
             // Configurar eventos para los checkboxes
             const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
             pernoCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
+                checkbox.addEventListener('change', function () {
                     togglePerno(parseInt(this.value));
                 });
             });
@@ -678,7 +740,7 @@
         function toggleTodos() {
             const todosCheckbox = document.getElementById('todos');
             const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
-            
+
             pernoCheckboxes.forEach(checkbox => {
                 checkbox.checked = todosCheckbox.checked;
                 const pernoNum = parseInt(checkbox.value);
@@ -688,7 +750,7 @@
                     selectedPernos.delete(pernoNum);
                 }
             });
-            
+
             if (chart) {
                 chart.data.datasets.forEach((dataset, index) => {
                     dataset.hidden = !todosCheckbox.checked;
@@ -705,7 +767,7 @@
                 selectedPernos.delete(pernoNum);
                 document.getElementById('todos').checked = false;
             }
-            
+
             if (chart) {
                 const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === `Perno ${pernoNum}`);
                 if (datasetIndex !== -1) {
@@ -719,7 +781,7 @@
         function createChart(fechas, datos) {
             const ctx = document.getElementById('myChart').getContext('2d');
             const opacity = currentOpacity / 100;
-            
+
             if (chart) {
                 chart.destroy();
             }
@@ -734,8 +796,9 @@
             availablePernos.forEach(pernoNum => {
                 const pernoKey = `perno_${pernoNum}`;
                 if (datos[pernoKey]) {
+                    const pernoName = datos.perno_names && datos.perno_names[pernoNum] ? datos.perno_names[pernoNum] : `Perno ${pernoNum}`;
                     datasets.push({
-                        label: `Perno ${pernoNum}`,
+                        label: pernoName,
                         data: datos[pernoKey],
                         borderColor: getPernoColor(pernoNum),
                         backgroundColor: 'transparent',
@@ -764,7 +827,7 @@
                             mode: 'index',
                             intersect: false,
                             callbacks: {
-                                label: function(context) {
+                                label: function (context) {
                                     let label = context.dataset.label || '';
                                     if (label) {
                                         label += ': ';
@@ -833,17 +896,17 @@
         }
 
         // Modificar la función que maneja los datos iniciales
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Cargar la configuración específica de la Raspberry actual
             const config = loadRaspberryConfig();
-            
+
             // Cargar y establecer los valores guardados en los inputs
             document.getElementById('zonaTrabajoMin').value = config.trabajo.min;
             document.getElementById('zonaTrabajoMax').value = config.trabajo.max;
             document.getElementById('zonaObservacionMin').value = config.observacion.min;
             document.getElementById('zonaObservacionMax').value = config.observacion.max;
             document.getElementById('zonaCriticaMax').value = config.critica.max;
-            
+
             // Establecer la opacidad guardada
             const raspberryId = getCurrentRaspberryId();
             currentOpacity = parseInt(localStorage.getItem(`zonasOpacidad_${raspberryId}`)) || 20;
@@ -857,20 +920,20 @@
                     if (data.fechas && data.fechas.length > 0) {
                         // Crear elementos dinámicamente
                         createDynamicElements(data);
-                        
+
                         // Actualizar MAX_POINTS con la cantidad total de datos
                         MAX_POINTS = data.fechas.length;
-                        
+
                         createChart(data.fechas, data);
                         lastTimestamp = data.fechas[data.fechas.length - 1];
-                        
+
                         // Actualizar velocímetros y últimos valores
                         Object.keys(data).forEach(key => {
                             if (key.startsWith('perno_')) {
                                 const pernoNum = parseInt(key.split('_')[1]);
                                 const ultimoValor = data[key][data[key].length - 1];
                                 const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
-                                
+
                                 document.getElementById(`valor-perno${pernoNum}`).textContent = valorFormateado;
                                 if (ultimoValor !== null) {
                                     const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
@@ -880,7 +943,7 @@
                                 }
                             }
                         });
-                        
+
                         // Iniciar el intervalo para nuevos datos
                         if (realTimeInterval) {
                             clearInterval(realTimeInterval);
@@ -895,17 +958,17 @@
             isRealTime = !isRealTime;
             const btn = document.getElementById('realTimeBtn');
             const filterControls = document.getElementById('filterControls');
-            
+
             if (isRealTime) {
                 btn.textContent = 'Detener Tiempo Real';
                 btn.classList.add('active');
                 filterControls.classList.add('disabled');
-                
+
                 // Limpiar intervalo existente si hay uno
                 if (realTimeInterval) {
                     clearInterval(realTimeInterval);
                 }
-                
+
                 // Cargar todos los datos actuales primero
                 fetch('/data?format=json')
                     .then(response => response.json())
@@ -913,33 +976,33 @@
                         if (data.fechas && data.fechas.length > 0) {
                             // Crear nuevo gráfico con todos los datos existentes
                             createChart(data.fechas, data);
-                            
+
                             // Actualizar el último timestamp para futuras actualizaciones
                             lastTimestamp = data.fechas[data.fechas.length - 1];
-                            
+
                             // Actualizar velocímetros y últimos valores con el dato más reciente
                             for (let i = 1; i <= 50; i++) {
                                 const pernoKey = `perno_${i}`;
                                 if (data[pernoKey] && data[pernoKey].length > 0) {
                                     const ultimoValor = data[pernoKey][data[pernoKey].length - 1];
                                     const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
-                                    
+
                                     // Actualizar último valor
                                     document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
-                                    
+
                                     // Actualizar velocímetro
                                     if (ultimoValor !== null) {
-                                        drawGauge(ctxs[i-1], gaugeCanvases[i-1], ultimoValor);
+                                        drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], ultimoValor);
                                         document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
                                     }
                                 }
                             }
-                            
+
                             // Actualizar la tabla si está visible
                             if (tableVisible) {
                                 updateTableRealTime();
                             }
-                            
+
                             // Iniciar el intervalo para nuevos datos
                             realTimeInterval = setInterval(fetchRealTimeData, 5000);
                         }
@@ -955,49 +1018,49 @@
 
         function fetchRealTimeData() {
             if (!isRealTime) return;
-            
+
             let url = '/data?format=json';
             if (lastTimestamp) {
                 url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
             }
-            
+
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.fechas && data.fechas.length > 0) {
                         lastTimestamp = data.fechas[data.fechas.length - 1];
-                        
+
                         // Actualizar MAX_POINTS con los nuevos datos
                         MAX_POINTS += data.fechas.length;
-                        
+
                         // Actualizar datos del gráfico
                         if (chart) {
                             chart.data.labels = chart.data.labels.concat(data.fechas);
-                            
+
                             chart.data.datasets.forEach((dataset, index) => {
                                 const pernoNum = index + 1;
                                 const pernoKey = `perno_${pernoNum}`;
                                 if (data[pernoKey]) {
                                     dataset.data = dataset.data.concat(data[pernoKey]);
                                     dataset.hidden = !selectedPernos.has(pernoNum);
-                                    
+
                                     // Actualizar último valor y velocímetro
                                     if (data[pernoKey].length > 0) {
                                         const ultimoValor = data[pernoKey][data[pernoKey].length - 1];
                                         const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
-                                        
+
                                         document.getElementById(`valor-perno${pernoNum}`).textContent = valorFormateado;
                                         if (ultimoValor !== null) {
-                                            drawGauge(ctxs[pernoNum-1], gaugeCanvases[pernoNum-1], ultimoValor);
+                                            drawGauge(ctxs[pernoNum - 1], gaugeCanvases[pernoNum - 1], ultimoValor);
                                             document.getElementById(`gaugeValue${pernoNum}`).textContent = valorFormateado;
                                         }
                                     }
                                 }
                             });
-                            
+
                             chart.update('none');
                         }
-                        
+
                         // Actualizar la tabla si está visible
                         if (tableVisible) {
                             updateTableRealTime();
@@ -1013,7 +1076,7 @@
         function stopRealTime() {
             const btn = document.getElementById('realTimeBtn');
             const filterControls = document.getElementById('filterControls');
-            
+
             btn.textContent = 'Iniciar Tiempo Real';
             btn.classList.remove('active');
             filterControls.classList.remove('disabled');
@@ -1027,20 +1090,20 @@
         function updateUltimosValores(datos) {
             for (let i = 1; i <= 50; i++) {
                 const pernoKey = `perno_${i}`;
-                const valor = datos[pernoKey] && datos[pernoKey].length > 0 ? 
+                const valor = datos[pernoKey] && datos[pernoKey].length > 0 ?
                     datos[pernoKey][datos[pernoKey].length - 1] : null;
-                
+
                 // Actualizar el texto del último valor
                 const valorElement = document.getElementById(`valor-perno${i}`);
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
                 valorElement.textContent = valorFormateado;
-                
+
                 // Actualizar el velocímetro con el mismo valor
                 if (valor !== null) {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
                     document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
                 } else {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
                     document.getElementById(`gaugeValue${i}`).textContent = '0';
                 }
             }
@@ -1051,7 +1114,7 @@
             const btn = document.getElementById('toggleTableBtn');
             const exportBtn = document.querySelector('.export-btn');
             tableVisible = !tableVisible;
-            
+
             if (tableVisible) {
                 btn.textContent = 'Ocultar Tabla';
                 exportBtn.style.display = 'block'; // Mostrar botón de exportación
@@ -1085,26 +1148,26 @@
 
         function hasDataChanged(newData) {
             if (!chart) return true;
-            
+
             const currentData = chart.data;
             if (currentData.labels.length !== newData.fechas.length) return true;
-            
+
             // Comparar fechas
             if (JSON.stringify(currentData.labels) !== JSON.stringify(newData.fechas)) return true;
-            
+
             // Comparar datos
             if (newData.isRaspiUser) {
                 return JSON.stringify(currentData.datasets[0].data) !== JSON.stringify(newData.medicion);
             } else {
                 for (let i = 0; i < 50; i++) {
-                    const pernoKey = `perno_${i+1}`;
-                    if (newData[pernoKey] && 
+                    const pernoKey = `perno_${i + 1}`;
+                    if (newData[pernoKey] &&
                         JSON.stringify(currentData.datasets[i].data) !== JSON.stringify(newData[pernoKey])) {
                         return true;
                     }
                 }
             }
-            
+
             return false;
         }
 
@@ -1113,10 +1176,10 @@
             // 1. No estamos en tiempo real
             // 2. No hay filtros de fecha activos
             // 3. No estamos viendo datos históricos (verificar si el usuario no es 'test')
-            if (!isRealTime && 
-                !document.getElementById('fecha_inicio').value && 
+            if (!isRealTime &&
+                !document.getElementById('fecha_inicio').value &&
                 !document.getElementById('fecha_fin').value) {
-                
+
                 // Verificar si estamos viendo datos en tiempo real (usuario test)
                 fetch('/data?format=json&limit=1')
                     .then(response => response.json())
@@ -1150,24 +1213,24 @@
             localStorage.setItem(`zonasConfig_${raspberryId}`, JSON.stringify(zonasConfig));
 
             // Actualizar el texto en el recuadro de leyenda
-            document.querySelector('.legend-item:nth-child(1) span').textContent = 
+            document.querySelector('.legend-item:nth-child(1) span').textContent =
                 `Zona de Trabajo Normal (${zonasConfig.trabajo.min}-${zonasConfig.trabajo.max})`;
-            document.querySelector('.legend-item:nth-child(2) span').textContent = 
+            document.querySelector('.legend-item:nth-child(2) span').textContent =
                 `Zona de Observación (${zonasConfig.observacion.min}-${zonasConfig.observacion.max})`;
-            document.querySelector('.legend-item:nth-child(3) span').textContent = 
+            document.querySelector('.legend-item:nth-child(3) span').textContent =
                 `Zona Crítica (0-${zonasConfig.critica.max})`;
 
             // Actualizar el gráfico si existe
             if (chart) {
                 const opacity = currentOpacity / 100;
                 const annotations = chart.options.plugins.annotation.annotations;
-                
+
                 annotations.zonaTrabajoNormal.yMin = zonasConfig.trabajo.min;
                 annotations.zonaTrabajoNormal.yMax = zonasConfig.trabajo.max;
-                
+
                 annotations.zonaObservacion.yMin = zonasConfig.observacion.min;
                 annotations.zonaObservacion.yMax = zonasConfig.observacion.max;
-                
+
                 annotations.zonaCritica.yMin = 0;
                 annotations.zonaCritica.yMax = zonasConfig.critica.max;
 
@@ -1181,7 +1244,7 @@
             const observacionMin = parseFloat(document.getElementById('observacionMin').value);
             const observacionMax = parseFloat(document.getElementById('observacionMax').value);
             const criticaMax = parseFloat(document.getElementById('criticaMax').value);
-            
+
             updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
         }
 
@@ -1200,7 +1263,7 @@
             zonasVisible = !zonasVisible;
             const btnText = document.getElementById('zonasButtonText');
             const aplicarBtn = document.getElementById('aplicarZonasBtn');
-            
+
             if (zonasVisible) {
                 btnText.textContent = 'Ocultar Zonas';
                 aplicarBtn.classList.add('active');
@@ -1215,14 +1278,14 @@
             const observacionMin = parseFloat(document.getElementById('observacionMin').value);
             const observacionMax = parseFloat(document.getElementById('observacionMax').value);
             const criticaMax = parseFloat(document.getElementById('criticaMax').value);
-            
+
             updateZonas(trabajoMin, trabajoMax, observacionMin, observacionMax, criticaMax);
         }
 
         function toggleAllPernos() {
             const selectAll = document.getElementById('selectAll');
             const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
-            
+
             selectedPernos.clear();
             pernoCheckboxes.forEach(checkbox => {
                 checkbox.checked = selectAll.checked;
@@ -1231,7 +1294,7 @@
                     selectedPernos.add(pernoNum);
                 }
             });
-            
+
             if (chart) {
                 chart.data.datasets.forEach((dataset, index) => {
                     dataset.hidden = !selectAll.checked;
@@ -1242,7 +1305,7 @@
 
         function updateChartVisibility() {
             if (!chart) return;
-            
+
             // Actualizar visibilidad de cada perno
             for (let i = 0; i < 50; i++) {
                 chart.data.datasets[i].hidden = !selectedPernos.has(i + 1);
@@ -1257,7 +1320,7 @@
                     if (data.raspberries) {
                         const container = document.getElementById('raspberryCheckboxes');
                         container.innerHTML = '';
-                        
+
                         data.raspberries.forEach(raspberry => {
                             container.innerHTML += `
                                 <label>
@@ -1267,7 +1330,7 @@
                                 </label>
                             `;
                         });
-                        
+
                         // Configurar eventos para los checkboxes
                         const checkboxes = document.querySelectorAll('.raspberry-checkbox');
                         checkboxes.forEach(cb => {
@@ -1282,11 +1345,11 @@
             currentOpacity = parseInt(value);
             document.getElementById('opacidadValue').textContent = value + '%';
             const opacity = value / 100;
-            
+
             // Guardar la opacidad específica de la Raspberry
             const raspberryId = getCurrentRaspberryId();
             localStorage.setItem(`zonasOpacidad_${raspberryId}`, value);
-            
+
             if (chart) {
                 updateChartZonesOpacity(opacity);
             }
@@ -1295,12 +1358,12 @@
         // Nueva función para actualizar la opacidad del gráfico
         function updateChartZonesOpacity(opacity) {
             if (!chart) return;
-            
+
             const annotations = chart.options.plugins.annotation.annotations;
             annotations.zonaTrabajoNormal.backgroundColor = `rgba(0, 200, 0, ${opacity})`;
             annotations.zonaObservacion.backgroundColor = `rgba(255, 255, 0, ${opacity})`;
             annotations.zonaCritica.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
-            
+
             chart.update('none');
         }
 
@@ -1316,18 +1379,35 @@
                         tempDiv.innerHTML = html;
                         const newTable = tempDiv.querySelector('table');
                         const existingTable = tableDiv.querySelector('table');
-                        
+
                         if (existingTable && newTable) {
                             // Ya no limitamos las filas a 10
                             const rows = Array.from(newTable.querySelectorAll('tr'));
                             const headerRow = rows[0];
                             const dataRows = rows.slice(1); // Tomamos todas las filas de datos
-                            
+
                             const newTableHtml = document.createElement('table');
                             newTableHtml.className = existingTable.className;
+
+                            // Modificar los encabezados de la tabla para usar los nombres personalizados
+                            const headerCells = Array.from(headerRow.querySelectorAll('th'));
+                            headerCells.forEach(cell => {
+                                const text = cell.textContent;
+                                if (text.startsWith('Perno ')) {
+                                    const pernoNum = text.split(' ')[1];
+                                    fetch('/data?format=json')
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.perno_names && data.perno_names[pernoNum]) {
+                                                cell.textContent = data.perno_names[pernoNum];
+                                            }
+                                        });
+                                }
+                            });
+
                             newTableHtml.appendChild(headerRow.cloneNode(true));
                             dataRows.forEach(row => newTableHtml.appendChild(row.cloneNode(true)));
-                            
+
                             tableDiv.innerHTML = '';
                             tableDiv.appendChild(newTableHtml);
                         } else {
@@ -1343,16 +1423,16 @@
             for (let i = 1; i <= 50; i++) {
                 const valor = tableData[`perno_${i}`];
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
-                
+
                 // Actualizar último valor
                 document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
-                
+
                 // Actualizar velocímetro
                 if (valor !== null) {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
                     document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
                 } else {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
                     document.getElementById(`gaugeValue${i}`).textContent = '0';
                 }
             }
@@ -1362,20 +1442,20 @@
             // Actualizar velocímetros y últimos valores con los datos más recientes
             for (let i = 1; i <= 50; i++) {
                 const pernoKey = `perno_${i}`;
-                const valor = data[pernoKey] && data[pernoKey].length > 0 ? 
+                const valor = data[pernoKey] && data[pernoKey].length > 0 ?
                     data[pernoKey][data[pernoKey].length - 1] : null;
-                
+
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
-                
+
                 // Actualizar último valor
                 document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
-                
+
                 // Actualizar velocímetro
                 if (valor !== null) {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], valor);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
                     document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
                 } else {
-                    drawGauge(ctxs[i-1], gaugeCanvases[i-1], 0);
+                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
                     document.getElementById(`gaugeValue${i}`).textContent = '0';
                 }
             }
@@ -1384,7 +1464,7 @@
         function toggleLegend() {
             const legendContent = document.getElementById('legend-content');
             const toggleButton = document.querySelector('.legend-toggle');
-            
+
             if (legendContent.style.display === 'none') {
                 legendContent.style.display = 'block';
                 toggleButton.textContent = '−';
@@ -1432,10 +1512,10 @@
                 const labelRadius = radius - 25;
                 const labelX = centerX + Math.cos(labelAngle) * labelRadius;
                 const labelY = centerY + Math.sin(labelAngle) * labelRadius;
-                
+
                 ctx.save();
                 ctx.translate(labelX, labelY);
-                ctx.rotate(labelAngle + Math.PI/2);
+                ctx.rotate(labelAngle + Math.PI / 2);
                 ctx.fillStyle = "#333";
                 ctx.textAlign = "center";
                 ctx.fillText((i * 20).toString(), 0, 0);
@@ -1474,19 +1554,20 @@
         function exportToExcel() {
             // Construir la URL base
             let url = '/export_excel';
-            
+
             // Agregar parámetros de fecha si existen
             const fechaInicio = document.getElementById('fecha_inicio')?.value;
             const fechaFin = document.getElementById('fecha_fin')?.value;
-            
+
             if (fechaInicio && fechaFin) {
                 url += `?fecha_inicio=${encodeURIComponent(fechaInicio)}&fecha_fin=${encodeURIComponent(fechaFin)}`;
             }
-            
+
             // Redirigir a la URL de exportación
             window.location.href = url;
         }
 
     </script>
 </body>
+
 </html>

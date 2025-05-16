@@ -50,6 +50,16 @@ def dashboard():
         session['selected_raspberry'] = raspberry_id
     return render_template('index.html')
 
+@app.route('/editar_pernos')
+@login_required
+def editar_pernos():
+    if session['role'] != 'admin':
+        return redirect(url_for('dashboard'))
+    raspberry_id = request.args.get('raspberry_id')
+    if not raspberry_id:
+        return redirect(url_for('dashboard'))
+    return render_template('perno_editor.html', raspberry_id=raspberry_id)
+
 @app.route('/data')
 @login_required
 def get_db_data():
@@ -59,6 +69,30 @@ def get_db_data():
         format_type = request.args.get('format', 'html')
         after_timestamp = request.args.get('after_timestamp')
         limit = request.args.get('limit')
+
+        # Primero obtenemos los nombres de los pernos
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if session['role'] == 'admin':
+            if 'selected_raspberry' in session:
+                cursor.execute("""
+                    SELECT numero, nombre 
+                    FROM perno 
+                    WHERE raspberry_id = %s
+                """, (int(session['selected_raspberry']),))
+            else:
+                return jsonify({'error': 'No raspberry selected'}), 400
+        else:
+            cursor.execute("""
+                SELECT DISTINCT p.numero, p.nombre 
+                FROM perno p
+                JOIN user_raspberry ur ON p.raspberry_id = ur.raspberry_id
+                WHERE ur.user_id = %s
+            """, (session['user_id'],))
+        
+        perno_names = {str(row[0]): row[1] for row in cursor.fetchall()}
+        cursor.close()
 
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
@@ -98,7 +132,6 @@ def get_db_data():
             elif after_timestamp:
                 base_query += ' LIMIT 50'
 
-        conn = get_db_connection()
         df = pd.read_sql_query(base_query, conn, params=params)
         conn.close()
 
@@ -111,9 +144,12 @@ def get_db_data():
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
         if format_type == 'html':
-            # Crear diccionario de nombres de columnas
+            # Crear diccionario de nombres de columnas usando los nombres de pernos
             column_names = {'fecha': 'Fecha y Hora', 'raspberry_id': 'Molino'}
-            column_names.update({col: f'Perno {col.split("_")[1]}' for col in columnas_validas})
+            column_names.update({
+                col: perno_names.get(col.split('_')[1], f'Perno {col.split("_")[1]}') 
+                for col in columnas_validas
+            })
             
             # Ordenar columnas: fecha, pernos válidos, raspberry_id
             column_order = ['fecha'] + columnas_validas + ['raspberry_id']
@@ -123,7 +159,8 @@ def get_db_data():
         else:
             data = {
                 'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-                'isAdmin': session['role'] == 'admin'
+                'isAdmin': session['role'] == 'admin',
+                'perno_names': perno_names  # Incluimos los nombres de los pernos en la respuesta JSON
             }
             for col in columnas_validas:
                 data[col] = df[col].tolist()
@@ -202,6 +239,75 @@ def get_raspberries():
         cursor.close()
         conn.close()
 
+@app.route('/pernos/<int:raspberry_id>', methods=['GET'])
+@login_required
+def get_pernos(raspberry_id):
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+        
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT numero, nombre 
+            FROM perno 
+            WHERE raspberry_id = %s 
+            ORDER BY numero
+        """, (raspberry_id,))
+        pernos = [{'numero': row[0], 'nombre': row[1]} for row in cursor.fetchall()]
+        return jsonify({'pernos': pernos})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/pernos/<int:raspberry_id>', methods=['PATCH'])
+@login_required
+def update_perno(raspberry_id):
+    if session['role'] != 'admin':
+        return jsonify({'error': 'Acceso no autorizado'}), 403
+        
+    try:
+        data = request.get_json()
+        perno_numero = data.get('numero')
+        nuevo_nombre = data.get('nombre')
+        
+        if not perno_numero or not nuevo_nombre:
+            return jsonify({'error': 'Faltan datos requeridos'}), 400
+            
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar si el perno existe
+        cursor.execute("""
+            SELECT id FROM perno 
+            WHERE raspberry_id = %s AND numero = %s
+        """, (raspberry_id, perno_numero))
+        
+        perno = cursor.fetchone()
+        
+        if perno:
+            # Actualizar perno existente
+            cursor.execute("""
+                UPDATE perno 
+                SET nombre = %s 
+                WHERE raspberry_id = %s AND numero = %s
+            """, (nuevo_nombre, raspberry_id, perno_numero))
+        else:
+            # Insertar nuevo perno
+            cursor.execute("""
+                INSERT INTO perno (numero, nombre, raspberry_id)
+                VALUES (%s, %s, %s)
+            """, (perno_numero, nuevo_nombre, raspberry_id))
+            
+        conn.commit()
+        return jsonify({'message': 'Perno actualizado correctamente'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/export_excel')
 @login_required
