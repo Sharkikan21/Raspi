@@ -680,26 +680,41 @@
         // Función para crear los elementos dinámicamente
         function createDynamicElements(data) {
             // Limpiar contenedores existentes
-            document.getElementById('pernosCheckboxes').innerHTML = '<label><input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos</label>';
+            document.getElementById('pernosCheckboxes').innerHTML = '';
             document.getElementById('ultimosValoresContainer').innerHTML = '';
             document.getElementById('gaugeGrid').innerHTML = '';
 
-            // Reset arrays
-            gauges.length = 0;
-            gaugeCanvases.length = 0;
-            ctxs.length = 0;
-            selectedPernos.clear();
+            // Agregar checkbox "Todos"
+            const todosLabel = document.createElement('label');
+            todosLabel.innerHTML = '<input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos';
+            document.getElementById('pernosCheckboxes').appendChild(todosLabel);
 
-            // Obtener lista de pernos disponibles
+            // Obtener lista de pernos disponibles y válidos
             const availablePernos = Object.keys(data)
                 .filter(key => key.startsWith('perno_'))
-                .map(key => parseInt(key.split('_')[1]))
+                .map(key => {
+                    const pernoNum = parseInt(key.split('_')[1]);
+                    const pernoData = data[key];
+                    // Verificar si el perno tiene datos válidos
+                    if (Array.isArray(pernoData) && pernoData.length > 0) {
+                        const ultimoValor = pernoData[pernoData.length - 1];
+                        if (ultimoValor !== null && ultimoValor !== undefined && !isNaN(ultimoValor)) {
+                            return pernoNum;
+                        }
+                    }
+                    return null;
+                })
+                .filter(num => num !== null)
                 .sort((a, b) => a - b);
 
-            // Crear checkboxes
+            console.log('Valid pernos:', availablePernos);
+
+            // Crear elementos solo para pernos válidos
             availablePernos.forEach(pernoNum => {
                 selectedPernos.add(pernoNum);
                 const pernoName = data.perno_names && data.perno_names[pernoNum] ? data.perno_names[pernoNum] : `Perno ${pernoNum}`;
+
+                // Crear checkbox
                 const checkboxLabel = document.createElement('label');
                 checkboxLabel.innerHTML = `<input type="checkbox" class="perno-checkbox" value="${pernoNum}" checked> ${pernoName}`;
                 document.getElementById('pernosCheckboxes').appendChild(checkboxLabel);
@@ -730,9 +745,15 @@
 
             // Configurar eventos para los checkboxes
             const pernoCheckboxes = document.querySelectorAll('.perno-checkbox');
-            pernoCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function () {
-                    togglePerno(parseInt(this.value));
+            pernoCheckboxes.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const pernoNum = parseInt(this.value);
+                    if (this.checked) {
+                        selectedPernos.add(pernoNum);
+                    } else {
+                        selectedPernos.delete(pernoNum);
+                    }
+                    updateChartVisibility();
                 });
             });
         }
@@ -895,10 +916,15 @@
             });
         }
 
-        // Modificar la función que maneja los datos iniciales
+        // Asegurarnos de que el intervalo se inicie correctamente
+        console.log('Script loaded, waiting for DOM...');
+
         document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM Content Loaded - Starting initialization...');
+
             // Cargar la configuración específica de la Raspberry actual
             const config = loadRaspberryConfig();
+            console.log('Raspberry config loaded:', config);
 
             // Cargar y establecer los valores guardados en los inputs
             document.getElementById('zonaTrabajoMin').value = config.trabajo.min;
@@ -913,45 +939,77 @@
             document.getElementById('zonasOpacidad').value = currentOpacity;
             document.getElementById('opacidadValue').textContent = currentOpacity + '%';
 
+            console.log('Fetching initial data...');
             // Cargar datos iniciales y comenzar monitoreo en tiempo real
             fetch('/data?format=json')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Initial data response received');
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Initial data parsed:', data);
                     if (data.fechas && data.fechas.length > 0) {
+                        console.log('Creating dynamic elements...');
                         // Crear elementos dinámicamente
                         createDynamicElements(data);
 
                         // Actualizar MAX_POINTS con la cantidad total de datos
                         MAX_POINTS = data.fechas.length;
 
+                        console.log('Creating chart...');
                         createChart(data.fechas, data);
                         lastTimestamp = data.fechas[data.fechas.length - 1];
+                        console.log('Initial lastTimestamp:', lastTimestamp);
 
                         // Actualizar velocímetros y últimos valores
                         Object.keys(data).forEach(key => {
                             if (key.startsWith('perno_')) {
-                                const pernoNum = parseInt(key.split('_')[1]);
-                                const ultimoValor = data[key][data[key].length - 1];
-                                const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
+                                try {
+                                    const pernoNum = parseInt(key.split('_')[1]);
+                                    const pernoData = data[key];
+                                    if (Array.isArray(pernoData) && pernoData.length > 0) {
+                                        const ultimoValor = pernoData[pernoData.length - 1];
+                                        const valorFormateado = ultimoValor !== null && ultimoValor !== undefined ? ultimoValor.toFixed(2) : '--';
 
-                                document.getElementById(`valor-perno${pernoNum}`).textContent = valorFormateado;
-                                if (ultimoValor !== null) {
-                                    const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
-                                    const ctx = canvas.getContext("2d");
-                                    drawGauge(ctx, canvas, ultimoValor);
-                                    document.getElementById(`gaugeValue${pernoNum}`).textContent = valorFormateado;
+                                        const valorElement = document.getElementById(`valor-perno${pernoNum}`);
+                                        if (valorElement) {
+                                            valorElement.textContent = valorFormateado;
+                                        }
+
+                                        if (ultimoValor !== null && ultimoValor !== undefined) {
+                                            const canvas = document.getElementById(`gaugeCanvas${pernoNum}`);
+                                            if (canvas) {
+                                                const ctx = canvas.getContext("2d");
+                                                drawGauge(ctx, canvas, ultimoValor);
+                                                const gaugeValueElement = document.getElementById(`gaugeValue${pernoNum}`);
+                                                if (gaugeValueElement) {
+                                                    gaugeValueElement.textContent = valorFormateado;
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error(`Error processing perno ${key}:`, error);
                                 }
                             }
                         });
 
-                        // Iniciar el intervalo para nuevos datos
+                        // Iniciar el intervalo para nuevos datos automáticamente
+                        console.log('Starting real-time interval...');
                         if (realTimeInterval) {
                             clearInterval(realTimeInterval);
                         }
                         realTimeInterval = setInterval(fetchRealTimeData, 5000);
+                        // Hacer una primera llamada inmediata
+                        console.log('Making first real-time data fetch...');
+                        fetchRealTimeData();
+                    } else {
+                        console.log('No data received in initial fetch');
                     }
                 })
-                .catch(error => console.error('Error:', error));
+                .catch(error => {
+                    console.error('Error loading initial data:', error);
+                });
         });
 
         function toggleRealTime() {
@@ -1017,18 +1075,25 @@
         }
 
         function fetchRealTimeData() {
-            if (!isRealTime) return;
+            console.log('Fetching real-time data...');
+            if (!isRealTime) {
+                console.log('Real-time is disabled');
+                return;
+            }
 
             let url = '/data?format=json';
             if (lastTimestamp) {
                 url += `&after_timestamp=${encodeURIComponent(lastTimestamp)}`;
             }
+            console.log('Fetching URL:', url);
 
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Received data:', data);
                     if (data.fechas && data.fechas.length > 0) {
                         lastTimestamp = data.fechas[data.fechas.length - 1];
+                        console.log('New lastTimestamp:', lastTimestamp);
 
                         // Actualizar MAX_POINTS con los nuevos datos
                         MAX_POINTS += data.fechas.length;
@@ -1068,8 +1133,7 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    stopRealTime();
+                    console.error('Error fetching real-time data:', error);
                 });
         }
 
@@ -1567,6 +1631,8 @@
             window.location.href = url;
         }
 
+        // También agregar un log al final del script para asegurarnos de que se carga
+        console.log('Script fully loaded');
     </script>
 </body>
 
