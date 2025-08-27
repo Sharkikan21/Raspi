@@ -148,9 +148,19 @@ def get_db_data():
 
         # Multiplicar valores de pernos por 1.35 solo si raspberry_id es 4
         if 'raspberry_id' in df.columns:
+            mask = df['raspberry_id'] == 3
+            for col in columnas_validas:
+                df.loc[mask, col] = df.loc[mask, col] * 1.32
+
+        if 'raspberry_id' in df.columns:
             mask = df['raspberry_id'] == 4
             for col in columnas_validas:
-                df.loc[mask, col] = df.loc[mask, col] * 1.35
+                df.loc[mask, col] = df.loc[mask, col] * 1.2
+
+        if 'raspberry_id' in df.columns:
+            mask = df['raspberry_id'] == 7
+            for col in columnas_validas:
+                df.loc[mask, col] = df.loc[mask, col] * 1.2
 
         if format_type == 'html':
             # Crear diccionario de nombres de columnas usando los nombres de pernos
