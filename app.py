@@ -147,10 +147,22 @@ def get_db_data():
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
        # Multiplicar valores de pernos por 1.35 solo si raspberry_id es 4
+        # Ajustes específicos por raspberry_id
         if 'raspberry_id' in df.columns:
-            mask = df['raspberry_id'] == 4
-            for col in columnas_validas:
-                df.loc[mask, col] = df.loc[mask, col] * 1.35
+            # Raspberry 4 → multiplicar SOLO el perno_4 × 1.35
+            mask_4 = df['raspberry_id'] == 4
+            if 'perno_4' in columnas_validas:
+                df.loc[mask_4, 'perno_4'] *= 1.35
+
+        # Raspberry 6 → multiplicar perno_3 × 1.32 y perno_4, perno_7 × 1.20
+            mask_6 = df['raspberry_id'] == 6
+            if 'perno_3' in columnas_validas:
+                df.loc[mask_6, 'perno_3'] *= 1.32
+            if 'perno_4' in columnas_validas:
+                df.loc[mask_6, 'perno_4'] *= 1.20
+            if 'perno_7' in columnas_validas:
+                df.loc[mask_6, 'perno_7'] *= 1.20
+
 
 
                 
