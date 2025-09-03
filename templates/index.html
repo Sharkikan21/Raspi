@@ -497,7 +497,12 @@
             cursor: pointer;
             font-size: 14px;
             display: none;
-            /* Se mostrará cuando la tabla sea visible */
+            /* Se mostrará cuando la tabla sea visible Y el usuario sea admin */
+        }
+
+        /* Ocultar botón de exportación para usuarios no administradores */
+        body:not([data-user-role="admin"]) .export-btn {
+            display: none !important;
         }
 
         .export-btn:hover {
@@ -509,7 +514,7 @@
 </head>
 
 <body>
-    <div class="main-container">
+    <div class="main-container" data-user-role="{{ session['role'] }}">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <img src="{{ url_for('static', filename='forymec_png_Mesa_de_trabajo_1.png') }}" alt="Forymec"
                 class="logo-header">
@@ -1181,7 +1186,10 @@
 
             if (tableVisible) {
                 btn.textContent = 'Ocultar Tabla';
-                exportBtn.style.display = 'block'; // Mostrar botón de exportación
+                // Solo mostrar botón de exportación si el usuario es administrador
+                if (document.body.dataset.userRole === 'admin') {
+                    exportBtn.style.display = 'block';
+                }
                 fetch('/data')
                     .then(response => response.text())
                     .then(html => {
@@ -1616,6 +1624,12 @@
         }
 
         function exportToExcel() {
+            // Verificar si el usuario es administrador antes de permitir la exportación
+            if (document.body.dataset.userRole !== 'admin') {
+                alert('Solo los administradores pueden exportar datos a Excel.');
+                return;
+            }
+
             // Construir la URL base
             let url = '/export_excel';
 
