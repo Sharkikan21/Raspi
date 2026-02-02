@@ -25,6 +25,9 @@ DB_CONFIG = {
     'port': 5432
 }
 
+# Pernos válidos solo para raspberry_id = 6
+PERNOS_VALIDOS_RASPBERRY_6 = ['perno_3', 'perno_4', 'perno_7']
+
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
 
@@ -137,22 +140,22 @@ def get_db_data():
 
         # Detectar columnas válidas de pernos
         numeric_columns = [f'perno_{i}' for i in range(1, 51)]
+        # Para raspberry_id 6 solo considerar perno_3, perno_4, perno_7
+        if 'raspberry_id' in df.columns and (df['raspberry_id'] == 6).all():
+            columnas_candidatas = [c for c in PERNOS_VALIDOS_RASPBERRY_6 if c in df.columns]
+        else:
+            columnas_candidatas = numeric_columns
         columnas_validas = []
-        for col in numeric_columns:
+        for col in columnas_candidatas:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
                 if col == 'perno_5':
                     continue  # Omitir perno_5 completamente
-   
                 columnas_validas.append(col)
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
-       # Multiplicar valores de pernos por 1.35 solo si raspberry_id es 4
+        # Multiplicar valores de pernos por 1.35 solo si raspberry_id es 4
         # Ajustes específicos por raspberry_id
         if 'raspberry_id' in df.columns:
-            # Raspberry 4 → multiplicar SOLO el perno_4 × 1.35
-            mask_4 = df['raspberry_id'] == 4
-            if 'perno_4' in columnas_validas:
-                df.loc[mask_4, 'perno_4'] *= 1.35
 
         # Raspberry 6 → multiplicar perno_3 × 1.32 y perno_4, perno_7 × 1.20
             mask_6 = df['raspberry_id'] == 6
@@ -372,8 +375,13 @@ def export_excel():
 
         # Detectar columnas válidas de pernos
         numeric_columns = [f'perno_{i}' for i in range(1, 51)]
+        # Para raspberry_id 6 solo considerar perno_3, perno_4, perno_7
+        if 'raspberry_id' in df.columns and (df['raspberry_id'] == 6).all():
+            columnas_candidatas = [c for c in PERNOS_VALIDOS_RASPBERRY_6 if c in df.columns]
+        else:
+            columnas_candidatas = numeric_columns
         columnas_validas = []
-        for col in numeric_columns:
+        for col in columnas_candidatas:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
                 if col == 'perno_5':
                     continue  # Omitir perno_5 completamente

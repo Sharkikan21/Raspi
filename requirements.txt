@@ -1,0 +1,5 @@
+flask>=3.0
+flask-caching>=2.0
+pandas>=2.0
+psycopg2-binary>=2.9
+werkzeug>=3.0
