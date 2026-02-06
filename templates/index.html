@@ -515,6 +515,10 @@
 
 <body>
     <div class="main-container" data-user-role="{{ session['role'] }}">
+        <!-- Debug: mostrar el rol del usuario -->
+        <script>
+            console.log('Template rendered with role:', '{{ session["role"] }}');
+        </script>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <img src="{{ url_for('static', filename='forymec_png_Mesa_de_trabajo_1.png') }}" alt="Forymec"
                 class="logo-header">
@@ -651,6 +655,8 @@
         const gauges = [];
         const gaugeCanvases = [];
         const ctxs = [];
+        const gaugeCanvasByPerno = new Map();
+        const gaugeCtxByPerno = new Map();
 
         // Función para obtener el ID de Raspberry actual
         function getCurrentRaspberryId() {
@@ -744,6 +750,8 @@
                 const ctx = canvas.getContext("2d");
                 gaugeCanvases.push(canvas);
                 ctxs.push(ctx);
+                gaugeCanvasByPerno.set(pernoNum, canvas);
+                gaugeCtxByPerno.set(pernoNum, ctx);
                 gauges.push(0);
                 drawGauge(ctx, canvas, 0);
             });
@@ -795,7 +803,7 @@
             }
 
             if (chart) {
-                const datasetIndex = chart.data.datasets.findIndex(ds => ds.label === `Perno ${pernoNum}`);
+                const datasetIndex = chart.data.datasets.findIndex(ds => ds.pernoNum === pernoNum);
                 if (datasetIndex !== -1) {
                     chart.data.datasets[datasetIndex].hidden = !checkbox.checked;
                     chart.update();
@@ -824,6 +832,7 @@
                 if (datos[pernoKey]) {
                     const pernoName = datos.perno_names && datos.perno_names[pernoNum] ? datos.perno_names[pernoNum] : `Perno ${pernoNum}`;
                     datasets.push({
+                        pernoNum: pernoNum,
                         label: pernoName,
                         data: datos[pernoKey],
                         borderColor: getPernoColor(pernoNum),
@@ -1055,8 +1064,12 @@
 
                                     // Actualizar velocímetro
                                     if (ultimoValor !== null) {
-                                        drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], ultimoValor);
-                                        document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                                        const gaugeCanvas = gaugeCanvasByPerno.get(i);
+                                        const gaugeCtx = gaugeCtxByPerno.get(i);
+                                        if (gaugeCanvas && gaugeCtx) {
+                                            drawGauge(gaugeCtx, gaugeCanvas, ultimoValor);
+                                            document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                                        }
                                     }
                                 }
                             }
@@ -1107,8 +1120,8 @@
                         if (chart) {
                             chart.data.labels = chart.data.labels.concat(data.fechas);
 
-                            chart.data.datasets.forEach((dataset, index) => {
-                                const pernoNum = index + 1;
+                            chart.data.datasets.forEach(dataset => {
+                                const pernoNum = dataset.pernoNum;
                                 const pernoKey = `perno_${pernoNum}`;
                                 if (data[pernoKey]) {
                                     dataset.data = dataset.data.concat(data[pernoKey]);
@@ -1121,8 +1134,12 @@
 
                                         document.getElementById(`valor-perno${pernoNum}`).textContent = valorFormateado;
                                         if (ultimoValor !== null) {
-                                            drawGauge(ctxs[pernoNum - 1], gaugeCanvases[pernoNum - 1], ultimoValor);
-                                            document.getElementById(`gaugeValue${pernoNum}`).textContent = valorFormateado;
+                                            const gaugeCanvas = gaugeCanvasByPerno.get(pernoNum);
+                                            const gaugeCtx = gaugeCtxByPerno.get(pernoNum);
+                                            if (gaugeCanvas && gaugeCtx) {
+                                                drawGauge(gaugeCtx, gaugeCanvas, ultimoValor);
+                                                document.getElementById(`gaugeValue${pernoNum}`).textContent = valorFormateado;
+                                            }
                                         }
                                     }
                                 }
@@ -1168,12 +1185,16 @@
                 valorElement.textContent = valorFormateado;
 
                 // Actualizar el velocímetro con el mismo valor
-                if (valor !== null) {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
-                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                } else {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
-                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                const gaugeCanvas = gaugeCanvasByPerno.get(i);
+                const gaugeCtx = gaugeCtxByPerno.get(i);
+                if (gaugeCanvas && gaugeCtx) {
+                    if (valor !== null) {
+                        drawGauge(gaugeCtx, gaugeCanvas, valor);
+                        document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                    } else {
+                        drawGauge(gaugeCtx, gaugeCanvas, 0);
+                        document.getElementById(`gaugeValue${i}`).textContent = '0';
+                    }
                 }
             }
         }
@@ -1379,9 +1400,9 @@
             if (!chart) return;
 
             // Actualizar visibilidad de cada perno
-            for (let i = 0; i < 50; i++) {
-                chart.data.datasets[i].hidden = !selectedPernos.has(i + 1);
-            }
+            chart.data.datasets.forEach(dataset => {
+                dataset.hidden = !selectedPernos.has(dataset.pernoNum);
+            });
             chart.update();
         }
 
@@ -1500,12 +1521,16 @@
                 document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
 
                 // Actualizar velocímetro
-                if (valor !== null) {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
-                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                } else {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
-                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                const gaugeCanvas = gaugeCanvasByPerno.get(i);
+                const gaugeCtx = gaugeCtxByPerno.get(i);
+                if (gaugeCanvas && gaugeCtx) {
+                    if (valor !== null) {
+                        drawGauge(gaugeCtx, gaugeCanvas, valor);
+                        document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                    } else {
+                        drawGauge(gaugeCtx, gaugeCanvas, 0);
+                        document.getElementById(`gaugeValue${i}`).textContent = '0';
+                    }
                 }
             }
         }
@@ -1523,12 +1548,16 @@
                 document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
 
                 // Actualizar velocímetro
-                if (valor !== null) {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], valor);
-                    document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
-                } else {
-                    drawGauge(ctxs[i - 1], gaugeCanvases[i - 1], 0);
-                    document.getElementById(`gaugeValue${i}`).textContent = '0';
+                const gaugeCanvas = gaugeCanvasByPerno.get(i);
+                const gaugeCtx = gaugeCtxByPerno.get(i);
+                if (gaugeCanvas && gaugeCtx) {
+                    if (valor !== null) {
+                        drawGauge(gaugeCtx, gaugeCanvas, valor);
+                        document.getElementById(`gaugeValue${i}`).textContent = valorFormateado;
+                    } else {
+                        drawGauge(gaugeCtx, gaugeCanvas, 0);
+                        document.getElementById(`gaugeValue${i}`).textContent = '0';
+                    }
                 }
             }
         }
@@ -1647,6 +1676,20 @@
 
         // También agregar un log al final del script para asegurarnos de que se carga
         console.log('Script fully loaded');
+        
+        // Verificar que el atributo data-user-role se haya establecido correctamente
+        document.addEventListener('DOMContentLoaded', function() {
+            const userRole = document.body.dataset.userRole;
+            console.log('DOM loaded. User role from data attribute:', userRole);
+            
+            // Verificar si el botón de exportación existe
+            const exportBtn = document.querySelector('.export-btn');
+            console.log('Export button found:', exportBtn);
+            
+            if (exportBtn) {
+                console.log('Export button initial display:', exportBtn.style.display);
+            }
+        });
     </script>
 </body>
 
