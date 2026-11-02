@@ -140,9 +140,6 @@ def get_db_data():
         columnas_validas = []
         for col in numeric_columns:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
-                if col == 'perno_5':
-                    continue  # Omitir perno_5 completamente
-   
                 columnas_validas.append(col)
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
@@ -375,8 +372,6 @@ def export_excel():
         columnas_validas = []
         for col in numeric_columns:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
-                if col == 'perno_5':
-                    continue  # Omitir perno_5 completamente
                 columnas_validas.append(col)
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
