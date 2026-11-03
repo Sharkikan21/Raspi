@@ -145,16 +145,17 @@ def get_db_data():
 
         # Ajustes específicos por raspberry_id
         if 'raspberry_id' in df.columns:
-            # Raspberry 4 → factores de calibración por perno
-            mask_4 = df['raspberry_id'] == 4
+            # Raspberry 4 → factores de calibración por perno a partir de 2026-11-03 15:21:00
+            fecha_calibracion_4 = pd.Timestamp('2026-11-03 15:21:00')
+            mask_4 = (df['raspberry_id'] == 4) & (pd.to_datetime(df['fecha']) >= fecha_calibracion_4)
             if 'perno_3' in columnas_validas:
-                df.loc[mask_4, 'perno_3'] *= 0.96
+                df.loc[mask_4, 'perno_3'] = (df.loc[mask_4, 'perno_3'] * 0.96).round(2)
             if 'perno_4' in columnas_validas:
-                df.loc[mask_4, 'perno_4'] *= 1.00
+                df.loc[mask_4, 'perno_4'] = (df.loc[mask_4, 'perno_4'] * 1.00).round(2)
             if 'perno_5' in columnas_validas:
-                df.loc[mask_4, 'perno_5'] *= 0.98
+                df.loc[mask_4, 'perno_5'] = (df.loc[mask_4, 'perno_5'] * 0.98).round(2)
             if 'perno_7' in columnas_validas:
-                df.loc[mask_4, 'perno_7'] *= 0.93
+                df.loc[mask_4, 'perno_7'] = (df.loc[mask_4, 'perno_7'] * 0.93).round(2)
 
         # Raspberry 6 → multiplicar perno_3 × 1.32 y perno_4, perno_7 × 1.20
             mask_6 = df['raspberry_id'] == 6
