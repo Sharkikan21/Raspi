@@ -120,7 +120,7 @@ def get_db_data():
 
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
-                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
+                base_query = 'SELECT t.* FROM public.tension t WHERE t.raspberry_id = %s'
                 params = [int(session['selected_raspberry'])]
             else:
                 return jsonify({'error': 'No raspberry selected'}), 400
@@ -133,7 +133,7 @@ def get_db_data():
             params = [session['user_id']]
 
         # SAG 2: mostrar únicamente mediciones desde el 3 de noviembre de 2026.
-        base_query += ' AND (raspberry_id <> 4 OR fecha >= %s)'
+        base_query += ' AND (t.raspberry_id <> 4 OR t.fecha >= %s)'
         params.append(INICIO_DATOS_SAG_2)
 
         if after_timestamp:
@@ -393,7 +393,7 @@ def export_excel():
         
         if session['role'] == 'admin':
             if 'selected_raspberry' in session:
-                base_query = 'SELECT * FROM public.tension WHERE raspberry_id = %s'
+                base_query = 'SELECT t.* FROM public.tension t WHERE t.raspberry_id = %s'
                 params = [int(session['selected_raspberry'])]
             else:
                 return jsonify({'error': 'No raspberry selected'}), 400
@@ -405,7 +405,7 @@ def export_excel():
             """
             params = [session['user_id']]
 
-        base_query += ' AND (raspberry_id <> 4 OR fecha >= %s)'
+        base_query += ' AND (t.raspberry_id <> 4 OR t.fecha >= %s)'
         params.append(INICIO_DATOS_SAG_2)
 
         if fecha_inicio and fecha_fin:
