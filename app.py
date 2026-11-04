@@ -225,7 +225,7 @@ def get_db_data():
             # Ordenar columnas: fecha, pernos válidos, raspberry_id
             column_order = ['fecha'] + columnas_validas + ['raspberry_id']
             df = df[column_order]
-            df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2'})
+            df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2', 5: 'SAG'})
             df = df.rename(columns=column_names)
             return df.to_html(classes='table table-striped', index=False)
         else:
@@ -442,7 +442,7 @@ def export_excel():
                                                 key=lambda x: int(x.split('_')[1])) + ['Molino']
 
         df = df[['fecha'] + columnas_validas + ['raspberry_id']]
-        df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2'})
+        df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2', 5: 'SAG'})
         df = df.rename(columns=rename_columns)
 
         # Exportar a Excel en memoria
