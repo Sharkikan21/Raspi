@@ -13,7 +13,7 @@ app.static_folder = 'static'
 
 # Configuración del caché
 cache = Cache(app, config={
-    'CACHE_TYPE': 'simple',
+    'CACHE_TYPE': 'SimpleCache',
     'CACHE_DEFAULT_TIMEOUT': 300
 })
 
@@ -27,6 +27,30 @@ DB_CONFIG = {
 
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
+
+CORRIDAS_RASPBERRY_4 = {
+    '1': 'Corrida 54',
+    '3': 'Corrida 51',
+    '5': 'Corrida 30',
+    '7': 'Corrida 36',
+}
+
+INICIO_DATOS_SAG_2 = datetime(2026, 11, 3)
+
+
+def configurar_sensores(df, nombres=None):
+    nombres = dict(nombres or {})
+    ids = set(df['raspberry_id'].dropna())
+    es_raspberry_4 = ids == {4} or (
+        not ids and session.get('role') == 'admin'
+        and str(session.get('selected_raspberry')) == '4'
+    )
+    if es_raspberry_4:
+        nombres = dict(CORRIDAS_RASPBERRY_4)
+        columnas = [f'perno_{numero}' for numero in nombres if f'perno_{numero}' in df.columns]
+    else:
+        columnas = [f'perno_{i}' for i in range(1, 51)]
+    return columnas, nombres
 
 def login_required(f):
     @wraps(f)
@@ -108,6 +132,10 @@ def get_db_data():
             """
             params = [session['user_id']]
 
+        # SAG 2: mostrar únicamente mediciones desde el 3 de noviembre de 2026.
+        base_query += ' AND (raspberry_id <> 4 OR fecha >= %s)'
+        params.append(INICIO_DATOS_SAG_2)
+
         if after_timestamp:
             base_query += ' AND fecha > %s'
             params.append(after_timestamp)
@@ -136,7 +164,7 @@ def get_db_data():
         conn.close()
 
         # Detectar columnas válidas de pernos
-        numeric_columns = [f'perno_{i}' for i in range(1, 51)]
+        numeric_columns, perno_names = configurar_sensores(df, perno_names)
         columnas_validas = []
         for col in numeric_columns:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
@@ -144,6 +172,8 @@ def get_db_data():
                 df[col] = df[col].apply(lambda x: float(f"{x:.2f}") if pd.notna(x) else 0)
 
         # Ajustes específicos por raspberry_id
+        # Conservar las lecturas de origen antes de aplicar cualquier calibración.
+        valores_originales = df[columnas_validas].copy()
         if 'raspberry_id' in df.columns:
             # Raspberry 4 → factores de calibración por perno a partir de 2026-11-03 15:21:00
             fecha_calibracion_4 = pd.Timestamp('2026-11-03 15:21:00')
@@ -156,6 +186,21 @@ def get_db_data():
                 df.loc[mask_4, 'perno_5'] = (df.loc[mask_4, 'perno_5'] * 0.98).round(2)
             if 'perno_7' in columnas_validas:
                 df.loc[mask_4, 'perno_7'] = (df.loc[mask_4, 'perno_7'] * 0.93).round(2)
+        if 'raspberry_id' in df.columns: 
+            # Raspberry 4: desde las 16:33, reemplazar los ajustes anteriores
+            # de estos pernos por un único factor sobre la lectura de origen.
+            # Referencias originales de BD del 2026-11-03 19:38:53:
+            # perno 3 = 199.94, perno 5 = 186.30, perno 7 = 208.12.
+            fecha_calibracion_4_2 = pd.Timestamp('2026-11-03 16:33:00')
+            mask_4_2 = (df['raspberry_id'] == 4) & (pd.to_datetime(df['fecha']) >= fecha_calibracion_4_2)
+            if 'perno_3' in columnas_validas:
+                df.loc[mask_4_2, 'perno_3'] = (valores_originales.loc[mask_4_2, 'perno_3'] * (174 / 199.94)).round(2)
+            if 'perno_4' in columnas_validas:
+                df.loc[mask_4_2, 'perno_4'] = (df.loc[mask_4_2, 'perno_4'] * 1.00).round(2)
+            if 'perno_5' in columnas_validas:
+                df.loc[mask_4_2, 'perno_5'] = (valores_originales.loc[mask_4_2, 'perno_5'] * (170 / 186.30)).round(2)
+            if 'perno_7' in columnas_validas:
+                df.loc[mask_4_2, 'perno_7'] = (valores_originales.loc[mask_4_2, 'perno_7'] * (173 / 208.12)).round(2)
 
         # Raspberry 6 → multiplicar perno_3 × 1.32 y perno_4, perno_7 × 1.20
             mask_6 = df['raspberry_id'] == 6
@@ -180,11 +225,12 @@ def get_db_data():
             # Ordenar columnas: fecha, pernos válidos, raspberry_id
             column_order = ['fecha'] + columnas_validas + ['raspberry_id']
             df = df[column_order]
+            df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2'})
             df = df.rename(columns=column_names)
             return df.to_html(classes='table table-striped', index=False)
         else:
             data = {
-                'fechas': df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+                'fechas': pd.to_datetime(df['fecha']).dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
                 'isAdmin': session['role'] == 'admin',
                 'perno_names': perno_names  # Incluimos los nombres de los pernos en la respuesta JSON
             }
@@ -281,6 +327,9 @@ def get_pernos(raspberry_id):
             ORDER BY numero
         """, (raspberry_id,))
         pernos = [{'numero': row[0], 'nombre': row[1]} for row in cursor.fetchall()]
+        if raspberry_id == 4:
+            pernos = [{'numero': int(numero), 'nombre': nombre}
+                      for numero, nombre in CORRIDAS_RASPBERRY_4.items()]
         return jsonify({'pernos': pernos})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -356,6 +405,9 @@ def export_excel():
             """
             params = [session['user_id']]
 
+        base_query += ' AND (raspberry_id <> 4 OR fecha >= %s)'
+        params.append(INICIO_DATOS_SAG_2)
+
         if fecha_inicio and fecha_fin:
             base_query += ' AND fecha >= %s AND fecha <= %s'
             try:
@@ -374,7 +426,7 @@ def export_excel():
         conn.close()
 
         # Detectar columnas válidas de pernos
-        numeric_columns = [f'perno_{i}' for i in range(1, 51)]
+        numeric_columns, perno_names = configurar_sensores(df)
         columnas_validas = []
         for col in numeric_columns:
             if col in df.columns and df[col].notna().any() and (df[col] != 0).any():
@@ -383,13 +435,14 @@ def export_excel():
 
         # Renombrar columnas
         rename_columns = {'fecha': 'Fecha y Hora', 'raspberry_id': 'Molino'}
-        rename_columns.update({col: f'Perno {col.split("_")[1]}' for col in columnas_validas})
+        rename_columns.update({col: perno_names.get(col.split('_')[1], f'Perno {col.split("_")[1]}') for col in columnas_validas})
 
         # Reordenar columnas para Excel
         columns_order = ['Fecha y Hora'] + sorted([col for col in rename_columns.keys() if col.startswith('perno_')], 
                                                 key=lambda x: int(x.split('_')[1])) + ['Molino']
 
         df = df[['fecha'] + columnas_validas + ['raspberry_id']]
+        df['raspberry_id'] = df['raspberry_id'].replace({4: 'SAG 2'})
         df = df.rename(columns=rename_columns)
 
         # Exportar a Excel en memoria

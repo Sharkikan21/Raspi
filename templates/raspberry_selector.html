@@ -105,7 +105,7 @@
                             card.className = 'raspberry-card';
                             card.onclick = () => selectRaspberry(raspberry);
                             card.innerHTML = `
-                                <h3>Raspberry ${raspberry}</h3>
+                                <h3>${Number(raspberry) === 4 ? 'SAG 2' : `Raspberry ${raspberry}`}</h3>
                                 <p>ID: ${raspberry}</p>
                             `;
                             grid.appendChild(card);

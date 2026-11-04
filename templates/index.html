@@ -531,7 +531,7 @@
                 <button
                     onclick="window.location.href='{{ url_for('editar_pernos', raspberry_id=session['selected_raspberry']) }}'"
                     class="button" style="background-color: #4CAF50; color: white;">
-                    Editar Pernos
+                    Editar sensores
                 </button>
                 {% endif %}
                 <button onclick="window.location.href='{{ url_for('logout') }}'" class="button logout">
@@ -542,7 +542,7 @@
         <div class="filter-container" id="filterControls">
             <button class="button" id="zonasBtn" onclick="toggleZonas()">Zonas de Operación</button>
             <div class="pernos-selector">
-                <p>Seleccionar Pernos:</p>
+                <p>Seleccionar sensores:</p>
                 <div class="checkbox-group" id="pernosCheckboxes">
                     <label>
                         <input type="checkbox" id="todos" checked onclick="toggleTodos()"> Todos
@@ -1060,7 +1060,8 @@
                                     const valorFormateado = ultimoValor !== null ? ultimoValor.toFixed(2) : '--';
 
                                     // Actualizar último valor
-                                    document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
+                                    const valorElement = document.getElementById(`valor-perno${i}`);
+                if (valorElement) valorElement.textContent = valorFormateado;
 
                                     // Actualizar velocímetro
                                     if (ultimoValor !== null) {
@@ -1181,6 +1182,7 @@
 
                 // Actualizar el texto del último valor
                 const valorElement = document.getElementById(`valor-perno${i}`);
+                if (!valorElement) continue;
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
                 valorElement.textContent = valorFormateado;
 
@@ -1514,11 +1516,12 @@
         function updateDisplays(tableData) {
             // Actualizar velocímetros y últimos valores con los datos de la tabla
             for (let i = 1; i <= 50; i++) {
-                const valor = tableData[`perno_${i}`];
+                const valor = tableData[`perno_${i}`] ?? null;
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
 
                 // Actualizar último valor
-                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
+                const valorElement = document.getElementById(`valor-perno${i}`);
+                if (valorElement) valorElement.textContent = valorFormateado;
 
                 // Actualizar velocímetro
                 const gaugeCanvas = gaugeCanvasByPerno.get(i);
@@ -1545,7 +1548,8 @@
                 const valorFormateado = valor !== null ? valor.toFixed(2) : '--';
 
                 // Actualizar último valor
-                document.getElementById(`valor-perno${i}`).textContent = valorFormateado;
+                const valorElement = document.getElementById(`valor-perno${i}`);
+                if (valorElement) valorElement.textContent = valorFormateado;
 
                 // Actualizar velocímetro
                 const gaugeCanvas = gaugeCanvasByPerno.get(i);
