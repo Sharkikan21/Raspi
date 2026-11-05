@@ -36,6 +36,8 @@ CORRIDAS_RASPBERRY_4 = {
 }
 
 INICIO_DATOS_SAG_2 = datetime(2026, 11, 3)
+INICIO_PRUEBAS_SAG_2 = datetime(2026, 11, 4, 22, 27, 38)
+FIN_PRUEBAS_SAG_2 = datetime(2026, 11, 4, 22, 43, 47)
 
 
 def configurar_sensores(df, nombres=None):
@@ -135,6 +137,9 @@ def get_db_data():
         # SAG 2: mostrar únicamente mediciones desde el 3 de noviembre de 2026.
         base_query += ' AND (t.raspberry_id <> 4 OR t.fecha >= %s)'
         params.append(INICIO_DATOS_SAG_2)
+        # Excluir las mediciones de prueba de SAG 2, incluidos ambos extremos.
+        base_query += ' AND NOT (t.raspberry_id = 4 AND t.fecha BETWEEN %s AND %s)'
+        params.extend([INICIO_PRUEBAS_SAG_2, FIN_PRUEBAS_SAG_2])
 
         if after_timestamp:
             base_query += ' AND fecha > %s'
@@ -407,6 +412,9 @@ def export_excel():
 
         base_query += ' AND (t.raspberry_id <> 4 OR t.fecha >= %s)'
         params.append(INICIO_DATOS_SAG_2)
+        # Aplicar la misma exclusión en la exportación.
+        base_query += ' AND NOT (t.raspberry_id = 4 AND t.fecha BETWEEN %s AND %s)'
+        params.extend([INICIO_PRUEBAS_SAG_2, FIN_PRUEBAS_SAG_2])
 
         if fecha_inicio and fecha_fin:
             base_query += ' AND fecha >= %s AND fecha <= %s'
